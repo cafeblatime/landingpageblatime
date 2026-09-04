@@ -1,64 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focus Session</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
-    .card { background: #1e1e1e; border-radius: 16px; padding: 24px; max-width: 360px; margin: 30px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    .badge { background: #2e7d32; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 16px; }
-    h1 { font-size: 1.5rem; margin-bottom: 12px; margin-top: 0; }
-    
-    /* Timer Containers */
-    .timer-section { background: #282828; border-radius: 12px; padding: 12px; margin-bottom: 16px; }
-    .timer-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 4px; }
-    .main-timer { font-size: 3rem; font-weight: bold; color: #4CAF50; }
-    .buffer-timer { font-size: 1.8rem; font-weight: bold; color: #64B5F6; }
-    .warning { color: #FF9800 !important; }
-    .expired { color: #E53935 !important; }
-
-    .btn { background: #007AFF; color: #fff; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
-    .status { font-size: 0.85rem; color: #aaa; margin-top: 12px; }
-  </style>
-</head>
-<body>
-
-  <div class="card">
-    <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
-
-    <!-- 1. CASHIER BUFFER CLOCK (PLACED ABOVE HEADER) -->
-    <div class="timer-section">
-      <div class="timer-label">Cashier Walk Buffer</div>
-      <div id="bufferTimer" class="buffer-timer">02:00</div>
-    </div>
-
-    <!-- 2. RENAMED HEADER -->
-    <h1 id="tableTitle">Table Focus Session</h1>
-    
-    <!-- 3. MAIN FOCUS SESSION CLOCK -->
-    <div class="timer-section">
-      <div class="timer-label">Main Focus Session</div>
-      <div id="mainTimer" class="main-timer">45:00</div>
-    </div>
-
-    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
-    <div id="statusText" class="status">No personal data required.</div>
-  </div>
-
-  <audio id="chimeSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-
-  <script>
+<script>
     // 1. Google Apps Script Web App Receiver URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
 
-    // 2. Parse Table Parameter from URL (?table=4)
+    // 2. Enhanced Dynamic Table Number Parsing
     const urlParams = new URLSearchParams(window.location.search);
-    let rawTable = urlParams.get('table') || '1';
     
-    if (rawTable.includes('@')) {
+    // Check multiple parameter variations or scan raw URL for numbers
+    let rawTable = urlParams.get('table') || urlParams.get('Table') || urlParams.get('tablenumber');
+    
+    if (!rawTable) {
+      // Fallback: Extract any digits found in the URL query string
+      const match = window.location.search.match(/\d+/);
+      rawTable = match ? match[0] : '1';
+    } else {
+      // Strip any accidental non-numeric characters (like '@' tags)
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
     }
+
+    // Update Header Text Dynamically
     document.getElementById('tableTitle').innerText = "Table " + rawTable + " Focus Session";
 
     // 3. Sequential Session Timings (2m Buffer FIRST, then 45m Main Session)
@@ -66,6 +25,7 @@
     const MAIN_DURATION_MS = 45 * 60 * 1000;    // 45 Minutes
     const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
+    // Table-Specific LocalStorage Key
     const storageKey = 'session_start_table_' + rawTable;
     let startTime = localStorage.getItem(storageKey);
 
@@ -162,5 +122,3 @@
       }
     }
   </script>
-</body>
-</html>
