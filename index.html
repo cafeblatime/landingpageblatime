@@ -22,7 +22,7 @@
 <body>
 
   <div class="card">
-    <div class="badge">✓ Thank you! finalize your payment by the counter</div>
+    <div class="badge">✓ Thank you! Finalize Your Payment By The Counter</div>
 
     <div class="timer-section">
       <div class="timer-label">Cashier Walk Buffer</div>
@@ -53,6 +53,19 @@
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
       document.getElementById('tableTitle').innerText = "Table " + rawTable + " Focus Session";
 
+      // --- PERSISTENT BUTTON UI CHECK ---
+      if (localStorage.getItem('alerts_enabled_table_' + rawTable) === 'true') {
+        const btn = document.getElementById('notifyBtn');
+        const status = document.getElementById('statusText');
+        if (btn) {
+          btn.innerText = "✓ Alerts Enabled";
+          btn.style.background = "#34C759";
+          btn.disabled = true;
+          if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
+        }
+      }
+
+      // --- TIMER TIMINGS ---
       const BUFFER_DURATION_MS = 2 * 60 * 1000;
       const MAIN_DURATION_MS = 45 * 60 * 1000;
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
@@ -116,6 +129,7 @@
       console.error("Initialization Error:", err);
     }
 
+    // --- PUSH NOTIFICATION & PERSISTENCE HANDLER ---
     async function enablePushNotifications() {
       const btn = document.getElementById('notifyBtn');
       const status = document.getElementById('statusText');
@@ -138,6 +152,9 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ table: rawTable, token: tempToken })
           });
+
+          // Save enable state across tab refreshes
+          localStorage.setItem('alerts_enabled_table_' + rawTable, 'true');
 
           btn.innerText = "✓ Alerts Enabled";
           btn.style.background = "#34C759";
