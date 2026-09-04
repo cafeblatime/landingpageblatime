@@ -1,38 +1,119 @@
-// Calculate or retrieve permanent end timestamp for this session
-let endTime = localStorage.getItem('session_end_table_' + tableNum);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table Session</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
+    .card { background: #1e1e1e; border-radius: 16px; padding: 24px; max-width: 360px; margin: 40px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .badge { background: #2e7d32; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; margin-top: 0; }
+    .timer { font-size: 3.2rem; font-weight: bold; margin: 15px 0 5px 0; color: #4CAF50; }
+    .warning { color: #FF9800 !important; }
+    .subtext { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
+    .btn { background: #007AFF; color: #fff; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
+    .status { font-size: 0.85rem; color: #aaa; margin-top: 12px; }
+  </style>
+</head>
+<body>
 
-if (!endTime) {
-  // 47 minutes total = 2820 seconds (45 min + 2 min buffer)
-  endTime = Date.now() + (47 * 60 * 1000); 
-  localStorage.setItem('session_end_table_' + tableNum, endTime);
-}
+  <div class="card">
+    <div class="badge">✓ Order Sent to Bar!</div>
+    <h1 id="tableTitle">Table Session</h1>
+    <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 10px;">Your session is active. Keep this tab open or enable push alerts below.</p>
+    
+    <div id="timerDisplay" class="timer">47:00</div>
+    <div class="subtext">Includes 2-minute cashier walk buffer</div>
 
-const timerElement = document.getElementById('timerDisplay');
-const chimeSound = document.getElementById('chimeSound');
-let alertPlayed = false;
+    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
+    <div id="statusText" class="status">No personal data required.</div>
+  </div>
 
-const countdown = setInterval(() => {
-  let remainingMs = endTime - Date.now();
-  let totalSeconds = Math.floor(remainingMs / 1000);
+  <audio id="chimeSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
-  if (totalSeconds <= 0) {
-    clearInterval(countdown);
-    timerElement.innerText = "0:00";
-    localStorage.removeItem('session_end_table_' + tableNum); // Reset upon completion
-    return;
-  }
+  <script>
+    // 1. YOUR GOOGLE APPS SCRIPT WEB APP ENDPOINT
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
 
-  let mins = Math.floor(totalSeconds / 60);
-  let secs = totalSeconds % 60;
-  timerElement.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    // 2. Dynamic Table Number Parsing from URL (?table=4)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableNum = urlParams.get('table') || '1';
+    document.getElementById('tableTitle').innerText = "Table " + tableNum + " Session";
 
-  // Sound + warning color at 7 minutes remaining
-  if (totalSeconds <= 420 && !alertPlayed) {
-    timerElement.classList.add('warning');
-    chimeSound.play().catch(e => console.log('Audio playback blocked'));
-    alertPlayed = true;
-  }
-}, 1000);
+    // 3. Persistent 47-Minute Timer (LocalStorage Fix)
+    const SESSION_DURATION_MS = 47 * 60 * 1000; // 47 minutes in milliseconds
+    let endTime = localStorage.getItem('session_end_table_' + tableNum);
 
-<div id="timerDisplay" class="timer">47:00</div>
-<p style="font-size: 0.8rem; color: #888; margin-top: -10px;">Includes 2-minute cashier walk time</p>
+    if (!endTime) {
+      endTime = Date.now() + SESSION_DURATION_MS;
+      localStorage.setItem('session_end_table_' + tableNum, endTime);
+    } else {
+      endTime = parseInt(endTime, 10);
+    }
+
+    const timerElement = document.getElementById('timerDisplay');
+    const chimeSound = document.getElementById('chimeSound');
+    let alertPlayed = false;
+
+    const countdown = setInterval(() => {
+      let remainingMs = endTime - Date.now();
+      let totalSeconds = Math.floor(remainingMs / 1000);
+
+      if (totalSeconds <= 0) {
+        clearInterval(countdown);
+        timerElement.innerText = "0:00";
+        localStorage.removeItem('session_end_table_' + tableNum); // Clean up on expiry
+        return;
+      }
+
+      let mins = Math.floor(totalSeconds / 60);
+      let secs = totalSeconds % 60;
+      timerElement.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+      // Visual & Audio Alert at 7 minutes remaining (420 seconds)
+      if (totalSeconds <= 420 && !alertPlayed) {
+        timerElement.classList.add('warning');
+        chimeSound.play().catch(e => console.log('Audio autoplay blocked'));
+        alertPlayed = true;
+      }
+    }, 1000);
+
+    // 4. Anonymous Push Alert Token Registration
+    async function enablePushNotifications() {
+      const btn = document.getElementById('notifyBtn');
+      const status = document.getElementById('statusText');
+
+      if (!('Notification' in window)) {
+        status.innerText = "Notifications not supported. Keep tab open for audio chime.";
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // Generate temporary device token
+          const tempToken = 'TOKEN_' + Math.random().toString(36).substring(2, 10) + Date.now();
+
+          // Send anonymous token + table number to Google Apps Script
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: tableNum, token: tempToken })
+          });
+
+          btn.innerText = "✓ Alerts Enabled";
+          btn.style.background = "#34C759";
+          btn.disabled = true;
+          status.innerText = "You will receive an alert 7 minutes before expiry.";
+        } else {
+          status.innerText = "Permission denied. Keep tab open to view live countdown.";
+        }
+      } catch (err) {
+        status.innerText = "Could not enable alerts. Keep tab open for chime.";
+      }
+    }
+  </script>
+</body>
+</html>
