@@ -33,7 +33,7 @@
     <h1 id="tableTitle">Table Focus Session</h1>
     
     <div class="timer-section">
-      <div id="sessionLabel" class="timer-label">Main Focus Session (45m)</div>
+      <div class="timer-label">Main Focus Session (45m)</div>
       <div id="mainTimer" class="main-timer">45:00</div>
     </div>
 
@@ -50,7 +50,6 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
     
-    // Global variable for table number
     let rawTable = '1';
 
     try {
@@ -58,14 +57,10 @@
       rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
       
-      // Session ID parameter prevents 00:00 timer loops on re-bookings
+      // Session ID prevents 00:00 timer locks on re-bookings
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
-      // Read duration parameter from URL (defaults to 45 if not specified)
-      const mainDurationMins = parseInt(urlParams.get('duration') || '45', 10);
-
       document.getElementById('tableTitle').innerText = "Table " + rawTable + " Focus Session";
-      document.getElementById('sessionLabel').innerText = "Main Focus Session (" + mainDurationMins + "m)";
 
       // Table & Session-Specific LocalStorage Key
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
@@ -78,7 +73,7 @@
         startTime = parseInt(startTime, 10);
       }
 
-      // Restore notification button state if enabled
+      // Restore alert button state if enabled for this session
       if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
         const btn = document.getElementById('notifyBtn');
         const status = document.getElementById('statusText');
@@ -90,9 +85,9 @@
         }
       }
 
-      // --- DYNAMIC TIMER ENGINE ---
-      const BUFFER_DURATION_MS = 2 * 60 * 1000; // 2 Minute Walk Buffer
-      const MAIN_DURATION_MS = mainDurationMins * 60 * 1000; // Dynamic 25m or 45m
+      // --- TIMER ENGINE ---
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;  // 2 min buffer
+      const MAIN_DURATION_MS = 45 * 60 * 1000;   // Fixed 45 min session
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       const bufferTimerEl = document.getElementById('bufferTimer');
@@ -112,7 +107,7 @@
 
           bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
           bufferTimerEl.classList.add('warning');
-          mainTimerEl.innerText = `${mainDurationMins}:00`;
+          mainTimerEl.innerText = "45:00";
         } 
         else if (elapsedMs < TOTAL_DURATION_MS) {
           bufferTimerEl.innerText = "00:00";
@@ -138,7 +133,7 @@
           mainTimerEl.classList.remove('warning');
           mainTimerEl.classList.add('expired');
           
-          // Show the Renewal button when timer completes
+          // Show renewal button when timer hits zero
           if (renewBtnEl) renewBtnEl.style.display = "block";
           
           clearInterval(interval);
@@ -149,7 +144,6 @@
       console.error("Initialization Error:", err);
     }
 
-    // Push notification handler
     async function enablePushNotifications() {
       const btn = document.getElementById('notifyBtn');
       const status = document.getElementById('statusText');
@@ -187,7 +181,6 @@
       }
     }
 
-    // Redirect handler for session renewal
     function startRenewal() {
       window.location.href = "https://tally.so/r/aQqkWX?table=" + rawTable;
     }
