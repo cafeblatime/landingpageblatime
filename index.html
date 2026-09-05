@@ -1,88 +1,170 @@
-<script>
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    let rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
-    rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Session</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
+    .card { background: #1e1e1e; border-radius: 16px; padding: 24px; max-width: 360px; margin: 30px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .badge { background: #2e7d32; color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 16px; }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; margin-top: 0; }
+    .timer-section { background: #282828; border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+    .timer-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 4px; }
+    .main-timer { font-size: 3rem; font-weight: bold; color: #4CAF50; }
+    .buffer-timer { font-size: 1.8rem; font-weight: bold; color: #64B5F6; }
+    .warning { color: #FF9800 !important; }
+    .expired { color: #E53935 !important; }
+    .btn { background: #007AFF; color: #fff; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
+    .status { font-size: 0.85rem; color: #aaa; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="badge">✓ Thank you! Finalize Your Payment By The Counter</div>
+
+    <div class="timer-section">
+      <div class="timer-label">Cashier Walk Buffer</div>
+      <div id="bufferTimer" class="buffer-timer">02:00</div>
+    </div>
+
+    <h1 id="tableTitle">Table Focus Session</h1>
     
-    // Extract unique booking identifier from URL
-    const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+    <div class="timer-section">
+      <div class="timer-label">Main Focus Session</div>
+      <div id="mainTimer" class="main-timer">45:00</div>
+    </div>
 
-    document.getElementById('tableTitle').innerText = "Table " + rawTable + " Focus Session";
+    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
+    <div id="statusText" class="status">No personal data required.</div>
+  </div>
 
-    // Table & Session-Specific LocalStorage Key
-    const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
-    let startTime = localStorage.getItem(storageKey);
+  <audio id="chimeSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
-    if (!startTime) {
-      startTime = Date.now();
-      localStorage.setItem(storageKey, startTime);
-    } else {
-      startTime = parseInt(startTime, 10);
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
+      rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
+      
+      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+
+      document.getElementById('tableTitle').innerText = "Table " + rawTable + " Focus Session";
+
+      const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
+      let startTime = localStorage.getItem(storageKey);
+
+      if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem(storageKey, startTime);
+      } else {
+        startTime = parseInt(startTime, 10);
+      }
+
+      if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
+        const btn = document.getElementById('notifyBtn');
+        const status = document.getElementById('statusText');
+        if (btn) {
+          btn.innerText = "✓ Alerts Enabled";
+          btn.style.background = "#34C759";
+          btn.disabled = true;
+          if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
+        }
+      }
+
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;
+      const MAIN_DURATION_MS = 45 * 60 * 1000;
+      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
+
+      const bufferTimerEl = document.getElementById('bufferTimer');
+      const mainTimerEl = document.getElementById('mainTimer');
+      const chimeSound = document.getElementById('chimeSound');
+      let alertPlayed = false;
+
+      const interval = setInterval(() => {
+        const elapsedMs = Date.now() - startTime;
+
+        if (elapsedMs < BUFFER_DURATION_MS) {
+          let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
+          let bufferSecs = Math.floor(remainingBufferMs / 1000);
+          let bMins = Math.floor(bufferSecs / 60);
+          let bSecs = bufferSecs % 60;
+
+          bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
+          bufferTimerEl.classList.add('warning');
+          mainTimerEl.innerText = "45:00";
+        } 
+        else if (elapsedMs < TOTAL_DURATION_MS) {
+          bufferTimerEl.innerText = "00:00";
+          bufferTimerEl.classList.remove('warning');
+          bufferTimerEl.classList.add('expired');
+
+          let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
+          let mainSecs = Math.floor(remainingMainMs / 1000);
+          let mMins = Math.floor(mainSecs / 60);
+          let mSecs = mainSecs % 60;
+
+          mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+
+          if (mainSecs <= 420 && !alertPlayed) {
+            mainTimerEl.classList.add('warning');
+            chimeSound.play().catch(e => console.log('Autoplay blocked'));
+            alertPlayed = true;
+          }
+        } 
+        else {
+          bufferTimerEl.innerText = "00:00";
+          mainTimerEl.innerText = "0:00";
+          mainTimerEl.classList.remove('warning');
+          mainTimerEl.classList.add('expired');
+          clearInterval(interval);
+        }
+      }, 1000);
+
+    } catch (err) {
+      console.error("Initialization Error:", err);
     }
 
-    // Check persistent notification button state for this specific session
-    if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
+    async function enablePushNotifications() {
       const btn = document.getElementById('notifyBtn');
       const status = document.getElementById('statusText');
-      if (btn) {
-        btn.innerText = "✓ Alerts Enabled";
-        btn.style.background = "#34C759";
-        btn.disabled = true;
-        if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
+
+      if (!('Notification' in window)) {
+        status.innerText = "Push alerts not supported. Keep tab open for chime.";
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const urlParams = new URLSearchParams(window.location.search);
+          let rawTable = (urlParams.get('table') || '1').replace(/[^0-9]/g, '') || '1';
+          const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+          const tempToken = 'TOKEN_' + Math.random().toString(36).substring(2, 10) + Date.now();
+
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: rawTable, token: tempToken })
+          });
+
+          localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
+
+          btn.innerText = "✓ Alerts Enabled";
+          btn.style.background = "#34C759";
+          btn.disabled = true;
+          status.innerText = "You will receive an alert 7 minutes before expiry.";
+        } else {
+          status.innerText = "Permission denied. Keep tab open to track clock.";
+        }
+      } catch (err) {
+        status.innerText = "Could not enable alerts. Keep tab open for chime.";
       }
     }
-
-    // --- TIMER ENGINE ---
-    const BUFFER_DURATION_MS = 2 * 60 * 1000;
-    const MAIN_DURATION_MS = 45 * 60 * 1000;
-    const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
-
-    const bufferTimerEl = document.getElementById('bufferTimer');
-    const mainTimerEl = document.getElementById('mainTimer');
-    const chimeSound = document.getElementById('chimeSound');
-    let alertPlayed = false;
-
-    const interval = setInterval(() => {
-      const elapsedMs = Date.now() - startTime;
-
-      if (elapsedMs < BUFFER_DURATION_MS) {
-        let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
-        let bufferSecs = Math.floor(remainingBufferMs / 1000);
-        let bMins = Math.floor(bufferSecs / 60);
-        let bSecs = bufferSecs % 60;
-
-        bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
-        bufferTimerEl.classList.add('warning');
-        mainTimerEl.innerText = "45:00";
-      } 
-      else if (elapsedMs < TOTAL_DURATION_MS) {
-        bufferTimerEl.innerText = "00:00";
-        bufferTimerEl.classList.remove('warning');
-        bufferTimerEl.classList.add('expired');
-
-        let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
-        let mainSecs = Math.floor(remainingMainMs / 1000);
-        let mMins = Math.floor(mainSecs / 60);
-        let mSecs = mainSecs % 60;
-
-        mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
-
-        if (mainSecs <= 420 && !alertPlayed) {
-          mainTimerEl.classList.add('warning');
-          chimeSound.play().catch(e => console.log('Autoplay blocked'));
-          alertPlayed = true;
-        }
-      } 
-      else {
-        bufferTimerEl.innerText = "00:00";
-        mainTimerEl.innerText = "0:00";
-        mainTimerEl.classList.remove('warning');
-        mainTimerEl.classList.add('expired');
-        clearInterval(interval);
-      }
-    }, 1000);
-
-  } catch (err) {
-    console.error("Initialization Error:", err);
-  }
-</script>
+  </script>
+</body>
+</html>
