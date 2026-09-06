@@ -17,6 +17,7 @@
     .expired { color: #E53935 !important; }
     .btn { background: #007AFF; color: #fff; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
     .btn-renew { background: #FF9800; display: none; margin-top: 15px; }
+    .btn-leave { background: #E53935; display: block; margin-top: 15px; }
     .status { font-size: 0.85rem; color: #aaa; margin-top: 12px; }
   </style>
 </head>
@@ -33,7 +34,7 @@
     <h1 id="tableTitle">TABLE FOCUS SESSION</h1>
     
     <div class="timer-section">
-      <div class="timer-label">Focus Session - 45 Minutes</div>
+      <div class="timer-label">Focus Session</div>
       <div id="mainTimer" class="main-timer">45:00</div>
     </div>
 
@@ -41,6 +42,9 @@
     
     <!-- RENEWAL BUTTON -->
     <button id="renewBtn" class="btn btn-renew" onclick="startRenewal()">🔄 Renew Focus Session</button>
+
+    <!-- EARLY EXIT / LEAVE BUTTON -->
+    <button id="leaveBtn" class="btn btn-leave" onclick="clearTableEarly()">🚪 I'm Leaving / Clear Table</button>
 
     <div id="statusText" class="status">No personal data required.</div>
   </div>
@@ -72,10 +76,10 @@
         function tone(freq, startTime, duration) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine'; // Soft, warm wave
+          osc.type = 'sine';
           osc.frequency.value = freq;
           
-          gain.gain.setValueAtTime(0.2, ctx.currentTime + startTime); // Relaxed volume
+          gain.gain.setValueAtTime(0.2, ctx.currentTime + startTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
           
           osc.connect(gain);
@@ -86,10 +90,8 @@
         }
 
         if (type === '7min') {
-          // Single calm bell tone for 7-minute warning
           tone(523.25, 0, 0.9);
         } else if (type === 'expired') {
-          // Distinct double chime for session expiration
           tone(523.25, 0, 0.4);
           tone(659.25, 0.45, 0.8);
         }
@@ -110,12 +112,22 @@
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
       let startTime = localStorage.getItem(storageKey);
 
+      // --- TIMER ENGINE DURATIONS ---
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;   // 2 min buffer
+      const MAIN_DURATION_MS = 45 * 60 * 1000;  // 45 min session
+      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
+
       if (!startTime) {
         startTime = Date.now();
         localStorage.setItem(storageKey, startTime);
       } else {
         startTime = parseInt(startTime, 10);
       }
+
+      // Save active table session and calculated absolute expiry timestamp for browser persistence/recovery
+      const sessionExpiryTime = startTime + TOTAL_DURATION_MS;
+      localStorage.setItem('activeTable', rawTable);
+      localStorage.setItem('sessionExpiry', sessionExpiryTime);
 
       if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
         const btn = document.getElementById('notifyBtn');
@@ -127,11 +139,6 @@
           if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
         }
       }
-
-      // --- TIMER ENGINE ---
-      const BUFFER_DURATION_MS = 1 * 60 * 1000;   // 2 min buffer
-      const MAIN_DURATION_MS = 8 * 60 * 1000;   // Fixed 45 min session
-      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       const bufferTimerEl = document.getElementById('bufferTimer');
       const mainTimerEl = document.getElementById('mainTimer');
@@ -198,7 +205,6 @@
       const btn = document.getElementById('notifyBtn');
       const status = document.getElementById('statusText');
 
-      // Request wake lock upon user interaction
       requestWakeLock();
 
       if (!('Notification' in window)) {
@@ -237,30 +243,27 @@
     function startRenewal() {
       window.location.href = "https://tally.so/r/aQqkWX?table=" + rawTable;
     }
+
+    async function clearTableEarly() {
+      var tableNum = localStorage.getItem('activeTable') || rawTable;
+      
+      try {
+        let response = await fetch(`${SCRIPT_URL}?table=${tableNum}`);
+        let result = await response.json();
+        
+        if (result.status === "success") {
+          localStorage.removeItem('activeTable');
+          localStorage.removeItem('sessionExpiry');
+          alert("Table cleared! Thank you.");
+          location.reload(); 
+        } else {
+          alert("Could not clear table automatically. Please notify the counter.");
+        }
+      } catch (err) {
+        console.error("Failed to clear table", err);
+        alert("Network error while attempting to clear table.");
+      }
+    }
   </script>
 </body>
 </html>
-
-
-<button id="leaveBtn" onclick="clearTableEarly()">I'm Leaving / Clear Table</button>
-
-<script>
-async function clearTableEarly() {
-  var tableNum = localStorage.getItem('activeTable') || "1"; // get current table
-  var webAppUrl = "YOUR_APPS_SCRIPT_WEB_APP_URL";
-  
-  try {
-    let response = await fetch(`${webAppUrl}?table=${tableNum}`);
-    let result = await response.json();
-    
-    if (result.status === "success") {
-      localStorage.removeItem('activeTable');
-      localStorage.removeItem('sessionExpiry');
-      alert("Table cleared! Thank you.");
-      location.reload(); // Reset view to home/scan page
-    }
-  } catch (err) {
-    console.error("Failed to clear table", err);
-  }
-}
-</script>
