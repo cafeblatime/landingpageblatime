@@ -240,3 +240,27 @@
   </script>
 </body>
 </html>
+
+
+<button id="leaveBtn" onclick="clearTableEarly()">I'm Leaving / Clear Table</button>
+
+<script>
+async function clearTableEarly() {
+  var tableNum = localStorage.getItem('activeTable') || "1"; // get current table
+  var webAppUrl = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+  
+  try {
+    let response = await fetch(`${webAppUrl}?table=${tableNum}`);
+    let result = await response.json();
+    
+    if (result.status === "success") {
+      localStorage.removeItem('activeTable');
+      localStorage.removeItem('sessionExpiry');
+      alert("Table cleared! Thank you.");
+      location.reload(); // Reset view to home/scan page
+    }
+  } catch (err) {
+    console.error("Failed to clear table", err);
+  }
+}
+</script>
