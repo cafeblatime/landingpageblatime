@@ -6,8 +6,8 @@
   <title>Focus Session</title>
   <style>
     :root {
-      --bg-color: #1800ad; /* Updated Main background: Vivid Royal Blue */
-      --card-bg: #FAF9F6; /* Off-white container */
+      --bg-color: #1800ad;
+      --card-bg: #FAF9F6;
       --royal-blue: #1800ad;
       --royal-blue-hover: #12008A;
       --text-main: #1800ad;
@@ -250,7 +250,7 @@
       let startTime = localStorage.getItem(storageKey);
 
       const BUFFER_DURATION_MS = 2 * 60 * 1000;
-      const MAIN_DURATION_MS = 1 * 60 * 1000;
+      const MAIN_DURATION_MS = 45 * 60 * 1000;
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       if (!startTime) {
@@ -305,11 +305,16 @@
 
           mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
 
-          if (mainSecs <= 420 && !alertPlayed) {
-            mainTimerEl.classList.add('warning');
-            playChime('7min');
-            requestWakeLock();
-            alertPlayed = true;
+          if (mainSecs <= 420) {
+            const notifyBtn = document.getElementById('notifyBtn');
+            if (notifyBtn) notifyBtn.style.display = 'none';
+
+            if (!alertPlayed) {
+              mainTimerEl.classList.add('warning');
+              playChime('7min');
+              requestWakeLock();
+              alertPlayed = true;
+            }
           }
         } 
         else {
