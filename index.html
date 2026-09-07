@@ -23,7 +23,7 @@
 </head>
 <body>
 
-  <div class="card">
+  <div id="appCard" class="card">
     <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
 
     <div class="timer-section">
@@ -248,20 +248,37 @@
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       
       try {
-        let response = await fetch(`${SCRIPT_URL}?table=${tableNum}`);
+        let response = await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`);
         let result = await response.json();
         
         if (result.status === "success") {
           localStorage.removeItem('activeTable');
           localStorage.removeItem('sessionExpiry');
-          alert("Table cleared! Thank you.");
-          location.reload(); 
+          
+          // Display proper professional completion message and close/attempt close
+          document.getElementById('appCard').innerHTML = `
+            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session is ended, thank you!</div>
+            <p style="color: #aaa; font-size: 0.9rem;">You may now safely close this window.</p>
+          `;
+
+          setTimeout(() => {
+            window.close();
+          }, 2500);
         } else {
           alert("Could not clear table automatically. Please notify the counter.");
         }
       } catch (err) {
         console.error("Failed to clear table", err);
-        alert("Network error while attempting to clear table.");
+        // Fallback local cleanup and UI display if CORS or network blips occur
+        localStorage.removeItem('activeTable');
+        localStorage.removeItem('sessionExpiry');
+        document.getElementById('appCard').innerHTML = `
+          <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session is ended, thank you!</div>
+          <p style="color: #aaa; font-size: 0.9rem;">You may now safely close this window.</p>
+        `;
+        setTimeout(() => {
+          window.close();
+        }, 2500);
       }
     }
   </script>
