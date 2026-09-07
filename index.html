@@ -5,20 +5,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focus Session</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
-    .card { background: #1e1e1e; border-radius: 16px; padding: 24px; max-width: 360px; margin: 30px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    .badge { background: #2e7d32; color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 16px; }
-    h1 { font-size: 1.4rem; margin-bottom: 12px; margin-top: 0; }
-    .timer-section { background: #282828; border-radius: 12px; padding: 12px; margin-bottom: 16px; }
-    .timer-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 4px; }
-    .main-timer { font-size: 3rem; font-weight: bold; color: #4CAF50; }
-    .buffer-timer { font-size: 1.8rem; font-weight: bold; color: #64B5F6; }
-    .warning { color: #FF9800 !important; }
-    .expired { color: #E53935 !important; }
-    .btn { background: #007AFF; color: #fff; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
-    .btn-renew { background: #FF9800; display: none; margin-top: 15px; }
-    .btn-leave { background: #E53935; display: block; margin-top: 15px; }
-    .status { font-size: 0.85rem; color: #aaa; margin-top: 12px; }
+    :root {
+      --bg-color: #F4F6F8;
+      --card-bg: #FFFFFF;
+      --royal-blue: #0F2C59;
+      --royal-blue-hover: #163A72;
+      --text-main: #0F2C59;
+      --text-muted: #5A6B82;
+      --border-color: #E2E8F0;
+      --accent-red: #D32F2F;
+      --accent-orange: #E65100;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      background: var(--bg-color); 
+      color: var(--text-main); 
+      text-align: center; 
+      padding: 20px; 
+      margin: 0; 
+    }
+
+    .card { 
+      background: var(--card-bg); 
+      border-radius: 20px; 
+      padding: 28px 24px; 
+      max-width: 360px; 
+      margin: 30px auto; 
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 25px rgba(15, 44, 89, 0.08); 
+    }
+
+    .badge { 
+      background: rgba(15, 44, 89, 0.08); 
+      color: var(--royal-blue); 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+      display: inline-block; 
+      margin-bottom: 20px; 
+      border: 1px solid rgba(15, 44, 89, 0.12);
+    }
+
+    h1 { 
+      font-size: 1.3rem; 
+      margin-bottom: 16px; 
+      margin-top: 0; 
+      color: var(--royal-blue);
+      letter-spacing: 0.5px;
+    }
+
+    .timer-section { 
+      background: #F8FAFC; 
+      border-radius: 14px; 
+      padding: 14px; 
+      margin-bottom: 16px; 
+      border: 1px solid var(--border-color);
+    }
+
+    .timer-label { 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+      letter-spacing: 1.2px; 
+      color: var(--text-muted); 
+      margin-bottom: 4px; 
+      font-weight: 600;
+    }
+
+    .main-timer { 
+      font-size: 3.2rem; 
+      font-weight: 800; 
+      color: var(--royal-blue); 
+    }
+
+    .buffer-timer { 
+      font-size: 1.8rem; 
+      font-weight: 700; 
+      color: var(--royal-blue); 
+    }
+
+    .warning { color: var(--accent-orange) !important; }
+    .expired { color: var(--accent-red) !important; }
+
+    .btn { 
+      background: var(--royal-blue); 
+      color: #FFFFFF; 
+      border: none; 
+      padding: 14px 20px; 
+      font-size: 1rem; 
+      font-weight: 600; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      width: 100%; 
+      margin-top: 10px; 
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-renew { 
+      background: var(--royal-blue); 
+      display: block; 
+      margin-top: 15px; 
+    }
+
+    .btn-leave { 
+      background: transparent; 
+      color: var(--accent-red); 
+      border: 2px solid var(--accent-red);
+      display: block; 
+      margin-top: 12px; 
+    }
+
+    .status { 
+      font-size: 0.85rem; 
+      color: var(--text-muted); 
+      margin-top: 14px; 
+    }
   </style>
 </head>
 <body>
@@ -26,24 +132,22 @@
   <div id="appCard" class="card">
     <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
 
-    <div class="timer-section">
+    <div id="bufferSection" class="timer-section">
       <div class="timer-label">Cashier Walk Buffer</div>
       <div id="bufferTimer" class="buffer-timer">02:00</div>
     </div>
 
     <h1 id="tableTitle">TABLE FOCUS SESSION</h1>
     
-    <div class="timer-section">
+    <div id="mainTimerSection" class="timer-section">
       <div class="timer-label">Focus Session</div>
       <div id="mainTimer" class="main-timer">45:00</div>
     </div>
 
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     
-    <!-- RENEWAL BUTTON -->
-    <button id="renewBtn" class="btn btn-renew" onclick="startRenewal()">🔄 Renew Focus Session</button>
-
-    <!-- EARLY EXIT / LEAVE BUTTON -->
+    <!-- EXPIRED UI CONTROLS (Hidden Initially) -->
+    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="clearTableEarly()">🚪 I'm Leaving</button>
 
     <div id="statusText" class="status">No personal data required.</div>
@@ -68,13 +172,13 @@
       }
     }
 
-    // Built-in Web Audio Synthesizer Chimes (Amplified and repeated pattern)
+    // Built-in Web Audio Synthesizer Chimes
     function playChime(type) {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
 
-        // Trigger physical device vibration if supported (Mobile devices)
+        // Trigger physical device vibration if supported
         if ('vibrate' in navigator) {
           if (type === '7min') {
             navigator.vibrate([200, 100, 200]);
@@ -87,7 +191,7 @@
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           
-          osc.type = 'triangle'; // Richer sound profile
+          osc.type = 'triangle';
           osc.frequency.value = freq;
           
           gain.gain.setValueAtTime(gainValue, ctx.currentTime + startTime);
@@ -101,13 +205,11 @@
         }
 
         if (type === '7min') {
-          // Double ding pattern (Repeated twice)
           tone(880, 0, 0.3);
           tone(1046.50, 0.35, 0.6);
           tone(880, 1.0, 0.3);
           tone(1046.50, 1.35, 0.6);
         } else if (type === 'expired') {
-          // Triple-beep alarm sequence (Repeated 3 times)
           const pattern = [0, 0.8, 1.6];
           pattern.forEach(offset => {
             tone(1046.50, offset + 0.0, 0.2);
@@ -118,6 +220,28 @@
       } catch (e) {
         console.log('Audio playback blocked or unsupported', e);
       }
+    }
+
+    // Dynamic UI Cleanup on Expiry
+    function renderExpiredUI() {
+      // Hide Alert Button & Status Text
+      const notifyBtn = document.getElementById('notifyBtn');
+      const statusText = document.getElementById('statusText');
+      const bufferSection = document.getElementById('bufferSection');
+      
+      if (notifyBtn) notifyBtn.style.display = 'none';
+      if (statusText) statusText.style.display = 'none';
+      if (bufferSection) bufferSection.style.display = 'none';
+
+      // Update Clocks
+      const mainTimerEl = document.getElementById('mainTimer');
+      mainTimerEl.innerText = "00:00";
+      mainTimerEl.classList.remove('warning');
+      mainTimerEl.classList.add('expired');
+
+      // Display Renew & Leave Controls
+      document.getElementById('renewBtn').style.display = "block";
+      document.getElementById('leaveBtn').style.display = "block";
     }
 
     try {
@@ -134,7 +258,7 @@
 
       // --- TIMER ENGINE DURATIONS ---
       const BUFFER_DURATION_MS = 2 * 60 * 1000;   // 2 min buffer
-      const MAIN_DURATION_MS = 1 * 60 * 1000;  // 45 min session
+      const MAIN_DURATION_MS = 45 * 60 * 1000;  // 45 min session
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       if (!startTime) {
@@ -144,7 +268,6 @@
         startTime = parseInt(startTime, 10);
       }
 
-      // Save active table session and calculated absolute expiry timestamp for browser persistence/recovery
       const sessionExpiryTime = startTime + TOTAL_DURATION_MS;
       localStorage.setItem('activeTable', rawTable);
       localStorage.setItem('sessionExpiry', sessionExpiryTime);
@@ -154,7 +277,7 @@
         const status = document.getElementById('statusText');
         if (btn) {
           btn.innerText = "✓ Alerts Enabled";
-          btn.style.background = "#34C759";
+          btn.style.background = "#2E7D32";
           btn.disabled = true;
           if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
         }
@@ -162,7 +285,6 @@
 
       const bufferTimerEl = document.getElementById('bufferTimer');
       const mainTimerEl = document.getElementById('mainTimer');
-      const renewBtnEl = document.getElementById('renewBtn');
       let alertPlayed = false;
       let expiredPlayed = false;
 
@@ -200,19 +322,13 @@
           }
         } 
         else {
-          bufferTimerEl.innerText = "00:00";
-          mainTimerEl.innerText = "0:00";
-          mainTimerEl.classList.remove('warning');
-          mainTimerEl.classList.add('expired');
-          
           if (!expiredPlayed) {
             playChime('expired');
             requestWakeLock();
             expiredPlayed = true;
           }
 
-          if (renewBtnEl) renewBtnEl.style.display = "block";
-          
+          renderExpiredUI();
           clearInterval(timerInterval);
         }
       }, 1000);
@@ -226,8 +342,6 @@
       const status = document.getElementById('statusText');
 
       requestWakeLock();
-      
-      // Warm up / unlock Web Audio API context on user click
       playChime('test');
 
       if (!('Notification' in window)) {
@@ -252,7 +366,7 @@
           localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
 
           btn.innerText = "✓ Alerts Enabled";
-          btn.style.background = "#34C759";
+          btn.style.background = "#2E7D32";
           btn.disabled = true;
           status.innerText = "You will receive an alert 7 minutes before expiry.";
         } else {
@@ -270,21 +384,17 @@
     async function clearTableEarly() {
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       
-      // Stop the timer loop
       if (timerInterval) clearInterval(timerInterval);
 
-      // Immediately replace UI with thank you message and remove timers
       document.getElementById('appCard').innerHTML = `
-        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session Ended</div>
-        <p style="color: #fff; font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
-        <p style="color: #aaa; font-size: 0.85rem;">You may now safely close this window.</p>
+        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
+        <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
       `;
 
-      // Clear local storage items
       localStorage.removeItem('activeTable');
       localStorage.removeItem('sessionExpiry');
 
-      // Send background ping to Google Apps Script using no-cors
       try {
         await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
           method: 'GET',
@@ -294,7 +404,6 @@
         console.log("Background ping sent", err);
       }
 
-      // Attempt to close window after 2.5 seconds
       setTimeout(() => {
         window.close();
       }, 2500);
