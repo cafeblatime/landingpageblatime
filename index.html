@@ -6,8 +6,8 @@
   <title>Focus Session</title>
   <style>
     :root {
-      --bg-color: #F4F6F8;
-      --card-bg: #FFFFFF;
+      --bg-color: #0F2C59; /* Main background: Dark Royal Blue */
+      --card-bg: #FAF9F6; /* Off-white container */
       --royal-blue: #0F2C59;
       --royal-blue-hover: #163A72;
       --text-main: #0F2C59;
@@ -32,8 +32,8 @@
       padding: 28px 24px; 
       max-width: 360px; 
       margin: 30px auto; 
-      border: 1px solid var(--border-color);
-      box-shadow: 0 10px 25px rgba(15, 44, 89, 0.08); 
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); 
     }
 
     .badge { 
@@ -57,7 +57,7 @@
     }
 
     .timer-section { 
-      background: #F8FAFC; 
+      background: #FFFFFF; 
       border-radius: 14px; 
       padding: 14px; 
       margin-bottom: 16px; 
@@ -146,7 +146,7 @@
 
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     
-    <!-- EXPIRED UI CONTROLS (Hidden Initially) -->
+    <!-- EXPIRED UI CONTROLS -->
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="clearTableEarly()">🚪 I'm Leaving</button>
 
@@ -160,25 +160,21 @@
     let wakeLock = null;
     let timerInterval = null;
 
-    // Screen Wake Lock Handler to wake or keep screen active
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Screen Wake Lock active');
         }
       } catch (err) {
         console.error(`Wake Lock error: ${err.name}, ${err.message}`);
       }
     }
 
-    // Built-in Web Audio Synthesizer Chimes
     function playChime(type) {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
 
-        // Trigger physical device vibration if supported
         if ('vibrate' in navigator) {
           if (type === '7min') {
             navigator.vibrate([200, 100, 200]);
@@ -222,9 +218,7 @@
       }
     }
 
-    // Dynamic UI Cleanup on Expiry
     function renderExpiredUI() {
-      // Hide Alert Button & Status Text
       const notifyBtn = document.getElementById('notifyBtn');
       const statusText = document.getElementById('statusText');
       const bufferSection = document.getElementById('bufferSection');
@@ -233,13 +227,11 @@
       if (statusText) statusText.style.display = 'none';
       if (bufferSection) bufferSection.style.display = 'none';
 
-      // Update Clocks
       const mainTimerEl = document.getElementById('mainTimer');
       mainTimerEl.innerText = "00:00";
       mainTimerEl.classList.remove('warning');
       mainTimerEl.classList.add('expired');
 
-      // Display Renew & Leave Controls
       document.getElementById('renewBtn').style.display = "block";
       document.getElementById('leaveBtn').style.display = "block";
     }
@@ -256,9 +248,8 @@
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
       let startTime = localStorage.getItem(storageKey);
 
-      // --- TIMER ENGINE DURATIONS ---
-      const BUFFER_DURATION_MS = 2 * 60 * 1000;   // 2 min buffer
-      const MAIN_DURATION_MS = 45 * 60 * 1000;  // 45 min session
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;
+      const MAIN_DURATION_MS = 45 * 60 * 1000;
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       if (!startTime) {
@@ -313,7 +304,6 @@
 
           mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
 
-          // 7 minutes remaining mark (420 seconds)
           if (mainSecs <= 420 && !alertPlayed) {
             mainTimerEl.classList.add('warning');
             playChime('7min');
