@@ -369,7 +369,14 @@
     }
 
     function startRenewal() {
-      window.location.href = "https://tally.so/r/aQqkWX?table=" + rawTable;
+      let countKey = 'renewal_count_' + rawTable;
+      let renewalCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+      
+      localStorage.setItem(countKey, renewalCount);
+
+      let mustBuyMenu = (renewalCount % 2 === 0);
+
+      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&must_buy_menu=${mustBuyMenu}`;
     }
 
     async function clearTableEarly() {
@@ -385,6 +392,7 @@
 
       localStorage.removeItem('activeTable');
       localStorage.removeItem('sessionExpiry');
+      localStorage.removeItem('renewal_count_' + rawTable);
 
       try {
         await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
