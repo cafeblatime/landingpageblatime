@@ -54,6 +54,7 @@
     
     let rawTable = '1';
     let wakeLock = null;
+    let timerInterval = null;
 
     // Screen Wake Lock Handler to wake or keep screen active
     async function requestWakeLock() {
@@ -146,7 +147,7 @@
       let alertPlayed = false;
       let expiredPlayed = false;
 
-      const interval = setInterval(() => {
+      timerInterval = setInterval(() => {
         const elapsedMs = Date.now() - startTime;
 
         if (elapsedMs < BUFFER_DURATION_MS) {
@@ -193,7 +194,7 @@
 
           if (renewBtnEl) renewBtnEl.style.display = "block";
           
-          clearInterval(interval);
+          clearInterval(timerInterval);
         }
       }, 1000);
 
@@ -247,39 +248,34 @@
     async function clearTableEarly() {
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       
-      try {
-        let response = await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`);
-        let result = await response.json();
-        
-        if (result.status === "success") {
-          localStorage.removeItem('activeTable');
-          localStorage.removeItem('sessionExpiry');
-          
-          // Display proper professional completion message and close/attempt close
-          document.getElementById('appCard').innerHTML = `
-            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session is ended, thank you!</div>
-            <p style="color: #aaa; font-size: 0.9rem;">You may now safely close this window.</p>
-          `;
+      // Stop the timer loop
+      if (timerInterval) clearInterval(timerInterval);
 
-          setTimeout(() => {
-            window.close();
-          }, 2500);
-        } else {
-          alert("Could not clear table automatically. Please notify the counter.");
-        }
+      // Immediately replace UI with thank you message and remove timers
+      document.getElementById('appCard').innerHTML = `
+        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session Ended</div>
+        <p style="color: #fff; font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+        <p style="color: #aaa; font-size: 0.85rem;">You may now safely close this window.</p>
+      `;
+
+      // Clear local storage items
+      localStorage.removeItem('activeTable');
+      localStorage.removeItem('sessionExpiry');
+
+      // Send background ping to Google Apps Script using no-cors
+      try {
+        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
+          method: 'GET',
+          mode: 'no-cors'
+        });
       } catch (err) {
-        console.error("Failed to clear table", err);
-        // Fallback local cleanup and UI display if CORS or network blips occur
-        localStorage.removeItem('activeTable');
-        localStorage.removeItem('sessionExpiry');
-        document.getElementById('appCard').innerHTML = `
-          <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; color: #4CAF50;">Session is ended, thank you!</div>
-          <p style="color: #aaa; font-size: 0.9rem;">You may now safely close this window.</p>
-        `;
-        setTimeout(() => {
-          window.close();
-        }, 2500);
+        console.log("Background ping sent", err);
       }
+
+      // Attempt to close window after 2.5 seconds
+      setTimeout(() => {
+        window.close();
+      }, 2500);
     }
   </script>
 </body>
