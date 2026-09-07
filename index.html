@@ -68,19 +68,29 @@
       }
     }
 
-    // Built-in Web Audio Synthesizer Chimes (No files required)
+    // Built-in Web Audio Synthesizer Chimes (Amplified and repeated pattern)
     function playChime(type) {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
+
+        // Trigger physical device vibration if supported (Mobile devices)
+        if ('vibrate' in navigator) {
+          if (type === '7min') {
+            navigator.vibrate([200, 100, 200]);
+          } else if (type === 'expired') {
+            navigator.vibrate([400, 100, 400, 100, 400]);
+          }
+        }
         
-        function tone(freq, startTime, duration) {
+        function tone(freq, startTime, duration, gainValue = 0.9) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          
+          osc.type = 'triangle'; // Richer sound profile
           osc.frequency.value = freq;
           
-          gain.gain.setValueAtTime(0.2, ctx.currentTime + startTime);
+          gain.gain.setValueAtTime(gainValue, ctx.currentTime + startTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
           
           osc.connect(gain);
@@ -91,10 +101,19 @@
         }
 
         if (type === '7min') {
-          tone(523.25, 0, 0.9);
+          // Double ding pattern (Repeated twice)
+          tone(880, 0, 0.3);
+          tone(1046.50, 0.35, 0.6);
+          tone(880, 1.0, 0.3);
+          tone(1046.50, 1.35, 0.6);
         } else if (type === 'expired') {
-          tone(523.25, 0, 0.4);
-          tone(659.25, 0.45, 0.8);
+          // Triple-beep alarm sequence (Repeated 3 times)
+          const pattern = [0, 0.8, 1.6];
+          pattern.forEach(offset => {
+            tone(1046.50, offset + 0.0, 0.2);
+            tone(1046.50, offset + 0.25, 0.2);
+            tone(1318.51, offset + 0.5, 0.4);
+          });
         }
       } catch (e) {
         console.log('Audio playback blocked or unsupported', e);
@@ -114,8 +133,8 @@
       let startTime = localStorage.getItem(storageKey);
 
       // --- TIMER ENGINE DURATIONS ---
-      const BUFFER_DURATION_MS = 1 * 60 * 1000;   // 2 min buffer
-      const MAIN_DURATION_MS = 1 * 60 * 1000;  // 45 min session
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;   // 2 min buffer
+      const MAIN_DURATION_MS = 45 * 60 * 1000;  // 45 min session
       const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
 
       if (!startTime) {
@@ -207,6 +226,9 @@
       const status = document.getElementById('statusText');
 
       requestWakeLock();
+      
+      // Warm up / unlock Web Audio API context on user click
+      playChime('test');
 
       if (!('Notification' in window)) {
         status.innerText = "Push alerts not supported. Keep tab open for chime.";
