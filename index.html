@@ -200,6 +200,27 @@
       background: #E2E8F0;
       color: var(--text-muted);
     }
+
+    .audio-settings {
+      margin-top: 15px;
+      background: #FFFFFF;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    .audio-settings label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+    .audio-settings input[type="range"] {
+      width: 100%;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -221,6 +242,16 @@
 
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
+
+    <!-- Volume Control Panel (0 to 100 scale) -->
+    <div class="audio-settings">
+      <label>
+        <span>Alert Volume</span>
+        <span id="volVal">90</span>
+      </label>
+      <input type="range" id="volumeSlider" min="0" max="100" value="90" oninput="updateVolume(this.value)">
+      <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
+    </div>
 
     <!-- EXPIRED UI CONTROLS -->
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
@@ -252,6 +283,12 @@
     let rawTable = '1';
     let wakeLock = null;
     let timerInterval = null;
+    let alertVolume = 0.9; // default base gain matching 90 on the 0-100 scale
+
+    function updateVolume(val) {
+      document.getElementById('volVal').innerText = val;
+      alertVolume = val / 100;
+    }
 
     function showCustomModal(message) {
       document.getElementById('customModalText').innerText = message;
@@ -293,14 +330,16 @@
           }
         }
 
-        function tone(freq, startTime, duration, gainValue = 0.9) {
+        function tone(freq, startTime, duration) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
 
           osc.type = 'triangle';
           osc.frequency.value = freq;
 
-          gain.gain.setValueAtTime(gainValue, ctx.currentTime + startTime);
+          // Multiply user's chosen 0-1 scale factor against a clear base loudness
+          const effectiveGain = alertVolume * 0.9;
+          gain.gain.setValueAtTime(effectiveGain, ctx.currentTime + startTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
 
           osc.connect(gain);
@@ -373,7 +412,6 @@
       localStorage.setItem('activeTable', rawTable);
       localStorage.setItem('sessionExpiry', sessionExpiryTime);
 
-      // Check if alert was previously enabled
       if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
         const btn = document.getElementById('notifyBtn');
         const status = document.getElementById('statusText');
@@ -447,7 +485,7 @@
       const status = document.getElementById('statusText');
 
       requestWakeLock();
-      playChime('test');
+      playChime('7min');
 
       if (!('Notification' in window)) {
         status.innerText = "Push alerts not supported. Keep tab open for chime.";
