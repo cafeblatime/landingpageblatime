@@ -396,12 +396,23 @@
 
       document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
 
-      // Manage or create a persistent userId in localStorage for this browser session
       let localUserId = localStorage.getItem('focus_user_id');
       if (!localUserId) {
         localUserId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now();
         localStorage.setItem('focus_user_id', localUserId);
       }
+
+      fetch(`${SCRIPT_URL}?action=client`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+            const tableData = data.tables[rawTable];
+            if (tableData.userId && sessionId !== 'latest' && tableData.userId !== sessionId) {
+              console.log("Session user ID mismatch with Tally raw Column A.");
+            }
+          }
+        })
+        .catch(err => console.error("User validation error:", err));
 
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
       let startTime = localStorage.getItem(storageKey);
@@ -429,7 +440,6 @@
           status.innerText = "You will receive an alert 7 minutes before expiry";
           status.classList.add('alert-active');
         }
-        // If alerts were already enabled previously, show the volume controls
         document.getElementById('audioSettingsPanel').style.display = 'block';
       }
 
@@ -528,7 +538,6 @@
             status.classList.add('alert-active');
           }
 
-          // Reveal the volume settings panel when the 7-min alert is approved
           document.getElementById('audioSettingsPanel').style.display = 'block';
         } else {
           status.innerText = "Permission denied. Keep tab open to track clock.";
@@ -556,7 +565,6 @@
 
       if (timerInterval) clearInterval(timerInterval);
 
-      // 1. Instantly update localStorage so any open Counter Live Dash UI updates immediately
       localStorage.setItem('force_clear_table_' + tableNum, Date.now());
 
       document.getElementById('appCard').innerHTML = `
@@ -569,7 +577,6 @@
       localStorage.removeItem('sessionExpiry');
       localStorage.removeItem('renewal_count_' + rawTable);
 
-      // 2. Instantly update LiveDash (Excel Sheet) via backend fetch request
       try {
         await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
           method: 'GET',
