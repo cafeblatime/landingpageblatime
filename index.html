@@ -549,6 +549,9 @@
 
       if (timerInterval) clearInterval(timerInterval);
 
+      // 1. Instantly update localStorage so any open Counter Live Dash UI updates immediately
+      localStorage.setItem('force_clear_table_' + tableNum, Date.now());
+
       document.getElementById('appCard').innerHTML = `
         <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
         <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
@@ -559,13 +562,14 @@
       localStorage.removeItem('sessionExpiry');
       localStorage.removeItem('renewal_count_' + rawTable);
 
+      // 2. Instantly update LiveDash (Excel Sheet) via backend fetch request
       try {
         await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
           method: 'GET',
           mode: 'no-cors'
         });
       } catch (err) {
-        console.log("Background ping sent", err);
+        console.log("Background ping sent to LiveDash", err);
       }
 
       setTimeout(() => {
