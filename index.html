@@ -396,6 +396,13 @@
 
       document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
 
+      // Manage or create a persistent userId in localStorage for this browser session
+      let localUserId = localStorage.getItem('focus_user_id');
+      if (!localUserId) {
+        localUserId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now();
+        localStorage.setItem('focus_user_id', localUserId);
+      }
+
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
       let startTime = localStorage.getItem(storageKey);
 
