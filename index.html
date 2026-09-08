@@ -3,528 +3,381 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focus Session</title>
+  <title>Manager Live Dashboard - Demo Mode</title>
   <style>
     :root {
       --bg-color: #1800ad;
-      --card-bg: #FAF9F6;
-      --royal-blue: #1800ad;
-      --royal-blue-hover: #12008A;
+      --card-open: #FAF9F6;
+      --card-active: #2E7D32;      /* Green */
+      --card-expiring: #E65100;    /* Orange */
+      --card-expired: #D32F2F;     /* Red */
       --text-main: #1800ad;
       --text-muted: #5A6B82;
-      --border-color: #E2E8F0;
-      --accent-red: #D32F2F;
-      --accent-orange: #E65100;
       --accent-green: #2E7D32;
+      --accent-red: #D32F2F;
     }
 
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      background: var(--bg-color); 
-      color: var(--text-main); 
-      text-align: center; 
-      padding: 20px; 
-      margin: 0; 
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      margin: 0;
     }
 
-    .card { 
-      background: var(--card-bg); 
-      border-radius: 20px; 
-      padding: 28px 24px; 
-      max-width: 360px; 
-      margin: 30px auto; 
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+    h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; color: #FAF9F6; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .table-card {
+      background: var(--card-open);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+      border: 2px solid transparent;
+      transition: transform 0.1s ease, background 0.3s ease;
       position: relative;
     }
 
-    .badge { 
-      background: rgba(24, 0, 173, 0.08); 
-      color: var(--royal-blue); 
-      padding: 8px 16px; 
-      border-radius: 20px; 
-      font-size: 0.85rem; 
-      font-weight: 600; 
-      display: inline-block; 
-      margin-bottom: 20px; 
-      border: 1px solid rgba(24, 0, 173, 0.12);
+    /* Only clickable if not open */
+    .table-card.clickable {
+      cursor: pointer;
+    }
+    .table-card.clickable:active { 
+      transform: scale(0.96); 
     }
 
-    h1 { 
-      font-size: 1.3rem; 
-      margin-bottom: 16px; 
-      margin-top: 0; 
-      color: var(--royal-blue);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+    /* STATE CARD STYLES */
+    .table-card.state-open { background: var(--card-open); border-color: #E2E8F0; opacity: 0.6; cursor: default; }
+    .table-card.state-active { background: var(--card-active); border-color: #2E7D32; opacity: 1; color: #FFFFFF; }
+    .table-card.state-expiring { background: var(--card-expiring); border-color: #E65100; opacity: 1; color: #FFFFFF; }
+    .table-card.state-expired { background: var(--card-expired); border-color: #D32F2F; opacity: 1; color: #FFFFFF; }
+
+    .table-card.state-active .table-num,
+    .table-card.state-expiring .table-num,
+    .table-card.state-expired .table-num {
+      color: #FFFFFF;
     }
 
-    .timer-section { 
-      background: #FFFFFF; 
-      border-radius: 14px; 
-      padding: 14px; 
-      margin-bottom: 16px; 
-      border: 1px solid var(--border-color);
+    .table-card.state-active .timer-display,
+    .table-card.state-expiring .timer-display,
+    .table-card.state-expired .timer-display {
+      color: #FFEB3B;
     }
 
-    .timer-label { 
-      font-size: 0.75rem; 
-      text-transform: uppercase; 
-      letter-spacing: 1.2px; 
-      color: var(--text-muted); 
-      margin-bottom: 4px; 
-      font-weight: 600;
-    }
-
-    .main-timer { 
-      font-size: 3.2rem; 
-      font-weight: 800; 
-      color: var(--royal-blue); 
-    }
-
-    .buffer-timer { 
-      font-size: 1.8rem; 
-      font-weight: 700; 
-      color: var(--royal-blue); 
-    }
-
-    .warning { color: var(--accent-orange) !important; }
-    .expired { color: var(--accent-red) !important; }
-
-    .btn { 
-      background: var(--royal-blue); 
-      color: #FFFFFF; 
-      border: none; 
-      padding: 14px 20px; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      border-radius: 12px; 
-      cursor: pointer; 
-      width: 100%; 
-      margin-top: 10px; 
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-
-    .btn:active {
-      transform: scale(0.98);
-      background: var(--royal-blue-hover);
-    }
-
-    .btn-renew { 
-      background: var(--royal-blue); 
-      display: block; 
-      margin-top: 15px; 
-    }
-
-    .btn-leave { 
-      background: transparent; 
-      color: var(--accent-red); 
-      border: 2px solid var(--accent-red);
-      display: block; 
-      margin-top: 12px; 
-    }
-
-    .status { 
-      font-size: 0.85rem; 
-      color: var(--text-muted); 
-      margin-top: 14px; 
-    }
-
-    .status.alert-active {
-      color: var(--accent-green);
-      font-weight: 600;
-    }
-
-    /* Custom Popup Modal Styles */
-    .custom-modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.4);
+    .table-header {
       display: flex;
       justify-content: center;
       align-items: center;
+      gap: 6px;
+    }
+
+    .table-num { font-size: 1.4rem; font-weight: 800; color: var(--text-main); }
+    
+    .bill-emoji {
+      font-size: 1.2rem;
+      transition: filter 0.3s ease, opacity 0.3s ease;
+    }
+    .bill-faded { opacity: 0.3; filter: grayscale(100%); }
+    .bill-approved { opacity: 1; filter: drop-shadow(0 0 4px #2E7D32); }
+    
+    .timer-display { 
+      font-size: 1.15rem; 
+      margin-top: 12px; 
+      color: var(--text-muted); 
+      font-weight: bold; 
+      font-family: monospace;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center; justify-content: center;
+      padding: 20px;
       z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
     }
 
-    .custom-modal-overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .custom-modal {
-      background: #FFFFFF;
-      padding: 20px 24px;
+    .modal-content {
+      background: #FAF9F6;
+      color: #1800ad;
+      padding: 24px;
       border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      max-width: 280px;
-      width: 80%;
-      text-align: center;
-    }
-
-    .custom-modal-text {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--royal-blue);
-      margin-bottom: 16px;
-    }
-
-    .custom-modal-btn {
-      background: var(--royal-blue);
-      color: #FFFFFF;
-      border: none;
-      padding: 10px 18px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
+      max-width: 360px;
       width: 100%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    .modal-actions {
+    .btn-action {
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      width: 100%;
+      margin-top: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    .btn-pay { background: #2E7D32; color: #FFFFFF; }
+    .btn-pay.approved { background: #E2E8F0; color: var(--text-muted); }
+    .btn-close { background: #E2E8F0; color: #1800ad; }
+
+    .verify-badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .verified { background: #2E7D32; color: #FFFFFF; }
+    .unverified { background: #D32F2F; color: #FFFFFF; }
+
+    /* PIN Overlay Styles */
+    #pinOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-color);
+      z-index: 2000;
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-
-    .btn-modal-cancel {
-      background: var(--accent-red);
-      color: #FFFFFF;
+    .pin-box {
+      background: #FAF9F6;
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
-
-    .btn-modal-confirm {
-      background: #E2E8F0;
-      color: var(--text-muted);
+    .pin-input {
+      font-size: 1.8rem;
+      letter-spacing: 8px;
+      text-align: center;
+      width: 80%;
+      padding: 10px;
+      background: #FFFFFF;
+      border: 2px solid #E2E8F0;
+      color: #1800ad;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .pin-error {
+      color: #D32F2F;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  <div id="appCard" class="card">
-    <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
-
-    <h1 id="tableTitle">TABLE 1</h1>
-
-    <div id="bufferSection" class="timer-section">
-      <div class="timer-label">Cashier Walk Buffer</div>
-      <div id="bufferTimer" class="buffer-timer">02:00</div>
-    </div>
-
-    <div id="mainTimerSection" class="timer-section">
-      <div class="timer-label">Focus Session</div>
-      <div id="mainTimer" class="main-timer">45:00</div>
-    </div>
-
-    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
-    <div id="statusText" class="status">No personal data required.</div>
-
-    <!-- EXPIRED UI CONTROLS -->
-    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
-    <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
-  </div>
-
-  <!-- CUSTOM ALERT MODAL -->
-  <div id="customModalOverlay" class="custom-modal-overlay">
-    <div class="custom-modal">
-      <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
-      <button class="custom-modal-btn" onclick="closeCustomModal()">OK</button>
+  <!-- PIN CODE OVERLAY -->
+  <div id="pinOverlay">
+    <div class="pin-box">
+      <h2 style="margin-top:0; color:#1800ad; font-size: 1.2rem;">Manager Access</h2>
+      <p style="color:var(--text-muted); font-size:0.9rem;">Enter 4-digit PIN code:</p>
+      <input type="password" id="pinInput" maxlength="4" class="pin-input" pattern="\d*" inputmode="numeric">
+      <div id="pinError" class="pin-error">Incorrect PIN. Try again.</div>
+      <button class="btn-action btn-pay" onclick="verifyPin()" style="margin-top:8px;">Enter</button>
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRMATION MODAL -->
-  <div id="confirmModalOverlay" class="custom-modal-overlay">
-    <div class="custom-modal">
-      <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
-      <div class="modal-actions">
-        <button class="custom-modal-btn btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
-        <button class="custom-modal-btn btn-modal-confirm" onclick="confirmClearTable()">End Session</button>
-      </div>
+  <h1>📱 Counter Dashboard (Demo Mode)</h1>
+  <div id="tableGrid" class="grid">Loading demo data...</div>
+
+  <!-- DETAILS MODAL -->
+  <div id="detailsModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle" style="margin-top:0;">Table X</h2>
+      <hr style="border-color: #E2E8F0;">
+      
+      <p><strong>Order Summary:</strong></p>
+      <ul id="modalOrders" style="padding-left: 20px; color: var(--text-muted); font-size: 0.95rem;"></ul>
+
+      <p><strong>Total Sum:</strong> $<span id="modalTotal">0.00</span></p>
+      
+      <div id="modalVerify" class="verify-badge">Checking...</div>
+
+      <button id="markPaidBtn" class="btn-action btn-pay" onclick="togglePaymentStatus()">Mark as Paid</button>
+      <button class="btn-action btn-close" onclick="closeModal()">Close</button>
     </div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
+    // ==========================================
+    // CONFIGURATION AREA
+    // ==========================================
+    const MANAGER_PIN = "0070"; 
+    // ==========================================
 
-    let rawTable = '1';
-    let wakeLock = null;
-    let timerInterval = null;
+    let activeData = {};
+    let currentSelectedTable = null;
 
-    function showCustomModal(message) {
-      document.getElementById('customModalText').innerText = message;
-      document.getElementById('customModalOverlay').classList.add('show');
-    }
+    window.addEventListener('DOMContentLoaded', () => {
+      const pinInput = document.getElementById('pinInput');
+      pinInput.focus();
+      pinInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') verifyPin();
+      });
+    });
 
-    function closeCustomModal() {
-      document.getElementById('customModalOverlay').classList.remove('show');
-    }
+    function verifyPin() {
+      const enteredPin = document.getElementById('pinInput').value;
+      const errorEl = document.getElementById('pinError');
 
-    function promptLeaveConfirmation() {
-      document.getElementById('confirmModalOverlay').classList.add('show');
-    }
-
-    function closeConfirmModal() {
-      document.getElementById('confirmModalOverlay').classList.remove('show');
-    }
-
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
-      } catch (err) {
-        console.error(`Wake Lock error: ${err.name}, ${err.message}`);
-      }
-    }
-
-    function playChime(type) {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
-
-        if ('vibrate' in navigator) {
-          if (type === '7min') {
-            navigator.vibrate([200, 100, 200]);
-          } else if (type === 'expired') {
-            navigator.vibrate([400, 100, 400, 100, 400]);
-          }
-        }
-
-        function tone(freq, startTime, duration, gainValue = 0.9) {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-
-          gain.gain.setValueAtTime(gainValue, ctx.currentTime + startTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
-
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-
-          osc.start(ctx.currentTime + startTime);
-          osc.stop(ctx.currentTime + startTime + duration);
-        }
-
-        if (type === '7min') {
-          tone(880, 0, 0.3);
-          tone(1046.50, 0.35, 0.6);
-          tone(880, 1.0, 0.3);
-          tone(1046.50, 1.35, 0.6);
-        } else if (type === 'expired') {
-          const pattern = [0, 0.8, 1.6];
-          pattern.forEach(offset => {
-            tone(1046.50, offset + 0.0, 0.2);
-            tone(1046.50, offset + 0.25, 0.2);
-            tone(1318.51, offset + 0.5, 0.4);
-          });
-        }
-      } catch (e) {
-        console.log('Audio playback blocked or unsupported', e);
-      }
-    }
-
-    function renderExpiredUI() {
-      const notifyBtn = document.getElementById('notifyBtn');
-      const statusText = document.getElementById('statusText');
-      const bufferSection = document.getElementById('bufferSection');
-
-      if (notifyBtn) notifyBtn.style.display = 'none';
-      if (statusText) statusText.style.display = 'none';
-      if (bufferSection) bufferSection.style.display = 'none';
-
-      const mainTimerEl = document.getElementById('mainTimer');
-      mainTimerEl.innerText = "00:00";
-      mainTimerEl.classList.remove('warning');
-      mainTimerEl.classList.add('expired');
-
-      document.getElementById('renewBtn').style.display = "block";
-      document.getElementById('leaveBtn').style.display = "block";
-    }
-
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
-      rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
-
-      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
-
-      document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
-
-      const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
-      let startTime = localStorage.getItem(storageKey);
-
-      const BUFFER_DURATION_MS = 2 * 60 * 1000;
-      const MAIN_DURATION_MS = 1 * 60 * 1000;
-      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
-
-      if (!startTime) {
-        startTime = Date.now();
-        localStorage.setItem(storageKey, startTime);
+      if (enteredPin === MANAGER_PIN) {
+        document.getElementById('pinOverlay').style.display = 'none';
+        loadDemoData(); 
+        setInterval(updateDemoTimers, 1000);
       } else {
-        startTime = parseInt(startTime, 10);
+        errorEl.style.display = 'block';
+        document.getElementById('pinInput').value = '';
       }
-
-      const sessionExpiryTime = startTime + TOTAL_DURATION_MS;
-      localStorage.setItem('activeTable', rawTable);
-      localStorage.setItem('sessionExpiry', sessionExpiryTime);
-
-      // Check if alert was previously enabled
-      if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
-        const btn = document.getElementById('notifyBtn');
-        const status = document.getElementById('statusText');
-        if (btn) btn.style.display = 'none';
-        if (status) {
-          status.innerText = "You will receive an alert 7 minutes before expiry";
-          status.classList.add('alert-active');
-        }
-      }
-
-      const bufferTimerEl = document.getElementById('bufferTimer');
-      const mainTimerEl = document.getElementById('mainTimer');
-      let alertPlayed = false;
-      let expiredPlayed = false;
-
-      timerInterval = setInterval(() => {
-        const elapsedMs = Date.now() - startTime;
-
-        if (elapsedMs < BUFFER_DURATION_MS) {
-          let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
-          let bufferSecs = Math.floor(remainingBufferMs / 1000);
-          let bMins = Math.floor(bufferSecs / 60);
-          let bSecs = bufferSecs % 60;
-
-          bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
-          bufferTimerEl.classList.add('warning');
-          mainTimerEl.innerText = "45:00";
-        } 
-        else if (elapsedMs < TOTAL_DURATION_MS) {
-          bufferTimerEl.innerText = "00:00";
-          bufferTimerEl.classList.remove('warning');
-          bufferTimerEl.classList.add('expired');
-
-          let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
-          let mainSecs = Math.floor(remainingMainMs / 1000);
-          let mMins = Math.floor(mainSecs / 60);
-          let mSecs = mainSecs % 60;
-
-          mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
-
-          if (mainSecs <= 420) {
-            const notifyBtn = document.getElementById('notifyBtn');
-            if (notifyBtn) notifyBtn.style.display = 'none';
-
-            if (!alertPlayed) {
-              mainTimerEl.classList.add('warning');
-              playChime('7min');
-              requestWakeLock();
-              alertPlayed = true;
-            }
-          }
-        } 
-        else {
-          if (!expiredPlayed) {
-            playChime('expired');
-            requestWakeLock();
-            expiredPlayed = true;
-          }
-
-          renderExpiredUI();
-          clearInterval(timerInterval);
-        }
-      }, 1000);
-
-    } catch (err) {
-      console.error("Initialization Error:", err);
     }
 
-    async function enablePushNotifications() {
-      const btn = document.getElementById('notifyBtn');
-      const status = document.getElementById('statusText');
+    function loadDemoData() {
+      activeData = {
+        "1": { table: 1, status: "Active", secondsLeft: 1250, orders: ["1x Espresso", "1x Croissant", "Focus Pass (45 minutes)"], totalSum: 14.50, intervalCount: 1, isPaid: false },
+        "2": { table: 2, status: "Open", secondsLeft: 0, orders: [], totalSum: 0.00, intervalCount: 0, isPaid: false },
+        "3": { table: 3, status: "Expiring", secondsLeft: 180, orders: ["2x Cappuccino", "1x Cheesecake", "Focus Pass (45 minutes)"], totalSum: 26.00, intervalCount: 1, isPaid: true },
+        "4": { table: 4, status: "Expired", secondsLeft: 0, orders: ["1x Latte", "Focus Pass (45 minutes)"], totalSum: 10.50, intervalCount: 1, isPaid: false },
+        "5": { table: 5, status: "Active", secondsLeft: 2400, orders: ["1x Mocha", "Focus Pass (45 minutes)"], totalSum: 12.00, intervalCount: 1, isPaid: false }
+      };
+      renderGrid();
+    }
 
-      requestWakeLock();
-      playChime('test');
+    function renderGrid() {
+      const grid = document.getElementById('tableGrid');
+      grid.innerHTML = '';
 
-      if (!('Notification' in window)) {
-        status.innerText = "Push alerts not supported. Keep tab open for chime.";
-        return;
-      }
+      const sortedKeys = Object.keys(activeData).sort((a, b) => parseInt(a) - parseInt(b));
 
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          const urlParams = new URLSearchParams(window.location.search);
-          const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
-          const tempToken = 'TOKEN_' + Math.random().toString(36).substring(2, 10) + Date.now();
+      sortedKeys.forEach(tNum => {
+        const t = activeData[tNum];
+        const statusLower = t.status.toLowerCase();
 
-          fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table: rawTable, token: tempToken })
-          });
+        const card = document.createElement('div');
+        const isOpen = statusLower === 'open';
+        
+        card.className = `table-card state-${statusLower} ${isOpen ? '' : 'clickable'}`;
+        
+        if (!isOpen) {
+          card.onclick = () => openModal(tNum);
+        }
 
-          localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
+        const isPaid = t.isPaid;
+        const billClass = isPaid ? 'bill-approved' : 'bill-faded';
+        const showBillEmoji = !isOpen;
 
-          showCustomModal("7 minutes alert confirmed.");
-
-          if (btn) btn.style.display = 'none';
-          if (status) {
-            status.innerText = "You will receive an alert 7 minutes before expiry";
-            status.classList.add('alert-active');
-          }
+        let timerText = "--:--";
+        if (isOpen) {
+          timerText = "Available";
+        } else if (statusLower === 'expired') {
+          timerText = "00:00";
         } else {
-          status.innerText = "Permission denied. Keep tab open to track clock.";
+          const mins = Math.floor(t.secondsLeft / 60);
+          const secs = t.secondsLeft % 60;
+          timerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
-      } catch (err) {
-        status.innerText = "Could not enable alerts. Keep tab open for chime.";
+
+        card.innerHTML = `
+          <div class="table-header">
+            <span class="table-num">Table ${t.table}</span>
+            ${showBillEmoji ? `<span class="bill-emoji ${billClass}">💵</span>` : ''}
+          </div>
+          <div class="timer-display" id="timer-${tNum}">${timerText}</div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    function updateDemoTimers() {
+      Object.keys(activeData).forEach(tNum => {
+        const t = activeData[tNum];
+        if (t.status.toLowerCase() === 'active' || t.status.toLowerCase() === 'expiring') {
+          if (t.secondsLeft > 0) {
+            t.secondsLeft--;
+            if (t.secondsLeft <= 300 && t.status.toLowerCase() === 'active') {
+              t.status = 'Expiring';
+            }
+          } else {
+            t.status = 'Expired';
+          }
+        }
+      });
+      renderGrid();
+    }
+
+    function openModal(tNum) {
+      currentSelectedTable = tNum;
+      const t = activeData[tNum];
+      if (!t) return;
+
+      document.getElementById('modalTitle').innerText = `Table ${t.table} Details`;
+      
+      const ordersList = document.getElementById('modalOrders');
+      ordersList.innerHTML = t.orders.length > 0 
+        ? t.orders.map(item => `<li>${item}</li>`).join('')
+        : '<li>No items recorded</li>';
+
+      document.getElementById('modalTotal').innerText = t.totalSum.toFixed(2);
+
+      const verifyEl = document.getElementById('modalVerify');
+      if (t.intervalCount) {
+        verifyEl.innerText = "Focus time is on";
+        verifyEl.className = "verify-badge verified";
+      } else {
+        verifyEl.innerText = "Focus time is off";
+        verifyEl.className = "verify-badge unverified";
+      }
+
+      updateModalPaidBtn();
+      document.getElementById('detailsModal').style.display = 'flex';
+    }
+
+    function updateModalPaidBtn() {
+      const btn = document.getElementById('markPaidBtn');
+      if (!currentSelectedTable || !activeData[currentSelectedTable]) return;
+
+      const isPaid = activeData[currentSelectedTable].isPaid;
+      if (isPaid) {
+        btn.innerText = "✓ Paid & Approved";
+        btn.className = "btn-action btn-pay approved";
+      } else {
+        btn.innerText = "Mark as Paid";
+        btn.className = "btn-action btn-pay";
       }
     }
 
-    function startRenewal() {
-      let countKey = 'renewal_count_' + rawTable;
-      let renewalCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+    function togglePaymentStatus() {
+      if (!currentSelectedTable || !activeData[currentSelectedTable]) return;
 
-      localStorage.setItem(countKey, renewalCount);
-
-      let evenUneven = (renewalCount % 2 === 0);
-
-      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&even_uneven=${evenUneven}`;
+      activeData[currentSelectedTable].isPaid = !activeData[currentSelectedTable].isPaid;
+      updateModalPaidBtn();
+      renderGrid();
     }
 
-    async function confirmClearTable() {
-      closeConfirmModal();
-
-      var tableNum = localStorage.getItem('activeTable') || rawTable;
-
-      if (timerInterval) clearInterval(timerInterval);
-
-      document.getElementById('appCard').innerHTML = `
-        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
-        <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
-        <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
-      `;
-
-      localStorage.removeItem('activeTable');
-      localStorage.removeItem('sessionExpiry');
-      localStorage.removeItem('renewal_count_' + rawTable);
-
-      try {
-        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
-          method: 'GET',
-          mode: 'no-cors'
-        });
-      } catch (err) {
-        console.log("Background ping sent", err);
-      }
-
-      setTimeout(() => {
-        window.close();
-      }, 2500);
+    function closeModal() {
+      document.getElementById('detailsModal').style.display = 'none';
+      currentSelectedTable = null;
     }
   </script>
 </body>
