@@ -244,7 +244,7 @@
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
 
-    <!-- Volume Control Panel (0 to 100 scale, hidden initially) -->
+    <!-- Volume Control Panel (0 to 100 scale, hidden initially, disappears with button) -->
     <div class="audio-settings" id="audioSettingsPanel">
       <label>
         <span>Alert Volume</span>
@@ -284,7 +284,7 @@
     let rawTable = '1';
     let wakeLock = null;
     let timerInterval = null;
-    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain)
+    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain) when no 7min alert choice was selected
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
@@ -458,7 +458,9 @@
 
           if (mainSecs <= 420) {
             const notifyBtn = document.getElementById('notifyBtn');
+            const audioSettingsPanel = document.getElementById('audioSettingsPanel');
             if (notifyBtn) notifyBtn.style.display = 'none';
+            if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
             if (!alertPlayed) {
               mainTimerEl.classList.add('warning');
@@ -519,7 +521,7 @@
             status.classList.add('alert-active');
           }
 
-          // Reveal the volume settings panel when the 7-min alert is approved/enabled
+          // Reveal the volume settings panel when the 7-min alert is approved
           document.getElementById('audioSettingsPanel').style.display = 'block';
         } else {
           status.innerText = "Permission denied. Keep tab open to track clock.";
