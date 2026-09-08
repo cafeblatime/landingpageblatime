@@ -135,7 +135,7 @@
       font-weight: 600;
     }
 
-    /* Custom Toast/Modal Notification */
+    /* Custom Popup Modal Styles */
     .custom-modal-overlay {
       position: fixed;
       top: 0;
@@ -185,6 +185,21 @@
       cursor: pointer;
       width: 100%;
     }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      background: #E2E8F0;
+      color: var(--text-muted);
+    }
+
+    .btn-modal-confirm {
+      background: var(--accent-red);
+      color: #FFFFFF;
+    }
   </style>
 </head>
 <body>
@@ -208,16 +223,27 @@
     
     <!-- EXPIRED UI CONTROLS -->
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
-    <button id="leaveBtn" class="btn btn-leave" onclick="clearTableEarly()">🚪 I'm Leaving</button>
+    <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
 
     <div id="statusText" class="status">No personal data required.</div>
   </div>
 
-  <!-- CUSTOM POPUP MODAL -->
+  <!-- CUSTOM ALERT MODAL -->
   <div id="customModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
       <button class="custom-modal-btn" onclick="closeCustomModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div id="confirmModalOverlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
+      <div class="modal-actions">
+        <button class="custom-modal-btn btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="custom-modal-btn btn-modal-confirm" onclick="confirmClearTable()">End Session</button>
+      </div>
     </div>
   </div>
 
@@ -235,6 +261,14 @@
 
     function closeCustomModal() {
       document.getElementById('customModalOverlay').classList.remove('show');
+    }
+
+    function promptLeaveConfirmation() {
+      document.getElementById('confirmModalOverlay').classList.add('show');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModalOverlay').classList.remove('show');
     }
 
     async function requestWakeLock() {
@@ -463,9 +497,8 @@
       window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&must_buy_menu=${mustBuyMenu}`;
     }
 
-    async function clearTableEarly() {
-      const confirmed = confirm("Are you sure you want to end your focus session early?");
-      if (!confirmed) return;
+    async function confirmClearTable() {
+      closeConfirmModal();
 
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       
