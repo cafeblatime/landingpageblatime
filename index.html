@@ -202,6 +202,7 @@
     }
 
     .audio-settings {
+      display: none; /* Hidden by default until 7-min alert is pressed */
       margin-top: 15px;
       background: #FFFFFF;
       padding: 10px;
@@ -243,13 +244,13 @@
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
 
-    <!-- Volume Control Panel (0 to 100 scale) -->
-    <div class="audio-settings">
+    <!-- Volume Control Panel (0 to 100 scale, hidden initially) -->
+    <div class="audio-settings" id="audioSettingsPanel">
       <label>
         <span>Alert Volume</span>
-        <span id="volVal">90</span>
+        <span id="volVal">35</span>
       </label>
-      <input type="range" id="volumeSlider" min="0" max="100" value="45" oninput="updateVolume(this.value)">
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)">
       <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
 
@@ -283,7 +284,7 @@
     let rawTable = '1';
     let wakeLock = null;
     let timerInterval = null;
-    let alertVolume = 0.9; // default base gain matching 90 on the 0-100 scale
+    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain)
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
@@ -337,7 +338,6 @@
           osc.type = 'triangle';
           osc.frequency.value = freq;
 
-          // Multiply user's chosen 0-1 scale factor against a clear base loudness
           const effectiveGain = alertVolume * 0.9;
           gain.gain.setValueAtTime(effectiveGain, ctx.currentTime + startTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
@@ -371,10 +371,12 @@
       const notifyBtn = document.getElementById('notifyBtn');
       const statusText = document.getElementById('statusText');
       const bufferSection = document.getElementById('bufferSection');
+      const audioSettingsPanel = document.getElementById('audioSettingsPanel');
 
       if (notifyBtn) notifyBtn.style.display = 'none';
       if (statusText) statusText.style.display = 'none';
       if (bufferSection) bufferSection.style.display = 'none';
+      if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
       const mainTimerEl = document.getElementById('mainTimer');
       mainTimerEl.innerText = "00:00";
@@ -420,6 +422,8 @@
           status.innerText = "You will receive an alert 7 minutes before expiry";
           status.classList.add('alert-active');
         }
+        // If alerts were already enabled previously, show the volume controls
+        document.getElementById('audioSettingsPanel').style.display = 'block';
       }
 
       const bufferTimerEl = document.getElementById('bufferTimer');
@@ -485,7 +489,6 @@
       const status = document.getElementById('statusText');
 
       requestWakeLock();
-      playChime('7min');
 
       if (!('Notification' in window)) {
         status.innerText = "Push alerts not supported. Keep tab open for chime.";
@@ -515,6 +518,9 @@
             status.innerText = "You will receive an alert 7 minutes before expiry";
             status.classList.add('alert-active');
           }
+
+          // Reveal the volume settings panel when the 7-min alert is approved/enabled
+          document.getElementById('audioSettingsPanel').style.display = 'block';
         } else {
           status.innerText = "Permission denied. Keep tab open to track clock.";
         }
