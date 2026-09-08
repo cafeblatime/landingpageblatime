@@ -15,6 +15,7 @@
       --border-color: #E2E8F0;
       --accent-red: #D32F2F;
       --accent-orange: #E65100;
+      --accent-green: #2E7D32;
     }
 
     body { 
@@ -125,6 +126,11 @@
       font-size: 0.85rem; 
       color: var(--text-muted); 
       margin-top: 14px; 
+    }
+
+    .status.alert-active {
+      color: var(--accent-green);
+      font-weight: 600;
     }
   </style>
 </head>
@@ -264,14 +270,14 @@
       localStorage.setItem('activeTable', rawTable);
       localStorage.setItem('sessionExpiry', sessionExpiryTime);
 
+      // Check if alert was previously enabled
       if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
         const btn = document.getElementById('notifyBtn');
         const status = document.getElementById('statusText');
-        if (btn) {
-          btn.innerText = "✓ Alerts Enabled";
-          btn.style.background = "#2E7D32";
-          btn.disabled = true;
-          if (status) status.innerText = "You will receive an alert 7 minutes before expiry.";
+        if (btn) btn.style.display = 'none';
+        if (status) {
+          status.innerText = "You will receive an alert 7 minutes before expiry";
+          status.classList.add('alert-active');
         }
       }
 
@@ -361,10 +367,13 @@
 
           localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
 
-          btn.innerText = "✓ Alerts Enabled";
-          btn.style.background = "#2E7D32";
-          btn.disabled = true;
-          status.innerText = "You will receive an alert 7 minutes before expiry.";
+          alert("Alert enabled");
+          
+          if (btn) btn.style.display = 'none';
+          if (status) {
+            status.innerText = "You will receive an alert 7 minutes before expiry";
+            status.classList.add('alert-active');
+          }
         } else {
           status.innerText = "Permission denied. Keep tab open to track clock.";
         }
@@ -385,6 +394,9 @@
     }
 
     async function clearTableEarly() {
+      const confirmed = confirm("Are you sure you want to end your focus session early?");
+      if (!confirmed) return;
+
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       
       if (timerInterval) clearInterval(timerInterval);
