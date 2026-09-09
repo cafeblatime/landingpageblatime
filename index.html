@@ -285,6 +285,8 @@
     let wakeLock = null;
     let timerInterval = null;
     let alertVolume = 0.35; // Default 35 volume scale (0.35 gain) when no 7min alert choice was selected
+    let serverSecondsLeft = null;
+    let syncInterval = null;
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
@@ -387,6 +389,56 @@
       document.getElementById('leaveBtn').style.display = "block";
     }
 
+    // Function to parse the end time string from the server matching the live dashboard logic
+    function parseEndTimeToSeconds(rawEnd) {
+      if (!rawEnd) return 0;
+      const now = new Date();
+      
+      let endDate = new Date(rawEnd);
+      if (!isNaN(endDate.getTime()) && (String(rawEnd).includes('T') || String(rawEnd).includes('-') || String(rawEnd).includes('/'))) {
+        const diffMs = endDate.getTime() - now.getTime();
+        return Math.floor(diffMs / 1000);
+      }
+
+      const timeStr = String(rawEnd).trim();
+      const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+      if (!timeParts) return 0;
+
+      let hours = parseInt(timeParts[1], 10);
+      let minutes = parseInt(timeParts[2], 10);
+      let seconds = timeParts[3] ? parseInt(timeParts[3], 10) : 0;
+      let ampm = timeParts[4];
+
+      if (ampm) {
+        if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
+        if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
+      }
+
+      endDate = new Date(now);
+      endDate.setHours(hours, minutes, seconds, 0);
+
+      const diffMs = endDate.getTime() - now.getTime();
+      return Math.floor(diffMs / 1000);
+    }
+
+    async function fetchServerTimerSync() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=client&table=${rawTable}&_nc=${Date.now()}`);
+        const data = await response.json();
+        if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+          const tableData = data.tables[rawTable];
+          if (tableData.endTime) {
+            const calculatedSecs = parseEndTimeToSeconds(tableData.endTime);
+            if (!isNaN(calculatedSecs)) {
+              serverSecondsLeft = calculatedSecs;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Sync error:", err);
+      }
+    }
+
     try {
       const urlParams = new URLSearchParams(window.location.search);
       rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
@@ -451,12 +503,27 @@
       let alertPlayed = false;
       let expiredPlayed = false;
 
-      timerInterval = setInterval(() => {
-        const elapsedMs = Date.now() - startTime;
+      // Initial fetch to sync up immediately with the backend live dashboard values
+      fetchServerTimerSync();
+      // Periodically re-sync with the Google Apps Script backend every 10 seconds
+      syncInterval = setInterval(fetchServerTimerSync, 10000);
 
-        if (elapsedMs < BUFFER_DURATION_MS) {
-          let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
-          let bufferSecs = Math.floor(remainingBufferMs / 1000);
+      timerInterval = setInterval(() => {
+        let remainingTotalSecs;
+
+        if (serverSecondsLeft !== null) {
+          remainingTotalSecs = serverSecondsLeft;
+          serverSecondsLeft--; // locally decrement each second to keep smooth ticker
+        } else {
+          const elapsedMs = Date.now() - startTime;
+          remainingTotalSecs = Math.max(0, Math.floor((TOTAL_DURATION_MS - elapsedMs) / 1000));
+        }
+
+        const BUFFER_SECS = 2 * 60;
+        const MAIN_SECS = 45 * 60;
+
+        if (remainingTotalSecs > MAIN_SECS) {
+          let bufferSecs = remainingTotalSecs - MAIN_SECS;
           let bMins = Math.floor(bufferSecs / 60);
           let bSecs = bufferSecs % 60;
 
@@ -464,13 +531,12 @@
           bufferTimerEl.classList.add('warning');
           mainTimerEl.innerText = "45:00";
         } 
-        else if (elapsedMs < TOTAL_DURATION_MS) {
+        else if (remainingTotalSecs > 0) {
           bufferTimerEl.innerText = "00:00";
           bufferTimerEl.classList.remove('warning');
           bufferTimerEl.classList.add('expired');
 
-          let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
-          let mainSecs = Math.floor(remainingMainMs / 1000);
+          let mainSecs = remainingTotalSecs;
           let mMins = Math.floor(mainSecs / 60);
           let mSecs = mainSecs % 60;
 
@@ -499,6 +565,7 @@
 
           renderExpiredUI();
           clearInterval(timerInterval);
+          if (syncInterval) clearInterval(syncInterval);
         }
       }, 1000);
 
@@ -567,6 +634,7 @@
       var tableNum = localStorage.getItem('activeTable') || rawTable;
 
       if (timerInterval) clearInterval(timerInterval);
+      if (syncInterval) clearInterval(syncInterval);
 
       localStorage.setItem('force_clear_table_' + tableNum, Date.now());
 
