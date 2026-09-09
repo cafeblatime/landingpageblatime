@@ -407,8 +407,11 @@
         .then(data => {
           if (data.status === 'success' && data.tables && data.tables[rawTable]) {
             const tableData = data.tables[rawTable];
-            if (tableData.userId && sessionId !== 'latest' && tableData.userId !== sessionId) {
-              console.log("Session user ID mismatch with Tally raw Column A.");
+            if (tableData.status && tableData.status.toLowerCase() !== 'open' && tableData.userId) {
+              if (sessionId === 'latest' || sessionId !== tableData.userId) {
+                window.location.href = `?table=${rawTable}&t=${tableData.userId}`;
+                return;
+              }
             }
           }
         })
