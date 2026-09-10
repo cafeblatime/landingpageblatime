@@ -202,7 +202,7 @@
     }
 
     .audio-settings {
-      display: none; /* Hidden by default until 7-min alert is pressed */
+      display: none;
       margin-top: 15px;
       background: #FFFFFF;
       padding: 10px;
@@ -244,7 +244,6 @@
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
 
-    <!-- Volume Control Panel (0 to 100 scale, hidden initially, disappears with button) -->
     <div class="audio-settings" id="audioSettingsPanel">
       <label>
         <span>Alert Volume</span>
@@ -254,12 +253,10 @@
       <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
 
-    <!-- EXPIRED UI CONTROLS -->
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
   </div>
 
-  <!-- CUSTOM ALERT MODAL -->
   <div id="customModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
@@ -267,7 +264,6 @@
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRMATION MODAL -->
   <div id="confirmModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
@@ -284,9 +280,15 @@
     let rawTable = '1';
     let wakeLock = null;
     let timerInterval = null;
-    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain) when no 7min alert choice was selected
+    let alertVolume = 0.35;
     let serverSecondsLeft = null;
     let syncInterval = null;
+    let localUserId = localStorage.getItem('focus_user_id');
+
+    if (!localUserId) {
+      localUserId = 'USR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      localStorage.setItem('focus_user_id', localUserId);
+    }
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
@@ -389,7 +391,6 @@
       document.getElementById('leaveBtn').style.display = "block";
     }
 
-    // Function to parse the end time string from the server matching the live dashboard logic
     function parseEndTimeToSeconds(rawEnd) {
       if (!rawEnd) return 0;
       const now = new Date();
@@ -423,7 +424,7 @@
 
     async function fetchServerTimerSync() {
       try {
-        const response = await fetch(`${SCRIPT_URL}?action=client&table=${rawTable}&_nc=${Date.now()}`);
+        const response = await fetch(`${SCRIPT_URL}?action=client&table=${rawTable}&client=${localUserId}&_nc=${Date.now()}`);
         const data = await response.json();
         if (data.status === 'success' && data.tables && data.tables[rawTable]) {
           const tableData = data.tables[rawTable];
@@ -447,27 +448,6 @@
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
       document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
-
-      let localUserId = localStorage.getItem('focus_user_id');
-      if (!localUserId) {
-        localUserId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now();
-        localStorage.setItem('focus_user_id', localUserId);
-      }
-
-      fetch(`${SCRIPT_URL}?action=client`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success' && data.tables && data.tables[rawTable]) {
-            const tableData = data.tables[rawTable];
-            if (tableData.status && tableData.status.toLowerCase() !== 'open' && tableData.userId) {
-              if (sessionId === 'latest' || sessionId !== tableData.userId) {
-                window.location.href = `?table=${rawTable}&t=${tableData.userId}`;
-                return;
-              }
-            }
-          }
-        })
-        .catch(err => console.error("User validation error:", err));
 
       const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
       let startTime = localStorage.getItem(storageKey);
@@ -503,9 +483,7 @@
       let alertPlayed = false;
       let expiredPlayed = false;
 
-      // Initial fetch to sync up immediately with the backend live dashboard values
       fetchServerTimerSync();
-      // Periodically re-sync with the Google Apps Script backend every 10 seconds
       syncInterval = setInterval(fetchServerTimerSync, 10000);
 
       timerInterval = setInterval(() => {
@@ -513,7 +491,7 @@
 
         if (serverSecondsLeft !== null) {
           remainingTotalSecs = serverSecondsLeft;
-          serverSecondsLeft--; // locally decrement each second to keep smooth ticker
+          serverSecondsLeft--;
         } else {
           const elapsedMs = Date.now() - startTime;
           remainingTotalSecs = Math.max(0, Math.floor((TOTAL_DURATION_MS - elapsedMs) / 1000));
@@ -625,7 +603,7 @@
 
       let evenUneven = (renewalCount % 2 === 0);
 
-      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&even_uneven=${evenUneven}`;
+      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&even_uneven=${evenUneven}&client_token=${localUserId}`;
     }
 
     async function confirmClearTable() {
