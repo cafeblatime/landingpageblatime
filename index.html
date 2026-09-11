@@ -254,8 +254,7 @@
     </div>
 
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
-    <!-- Replace your current leave button line with this: -->
-<button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
+    <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
   </div>
 
   <!-- CUSTOM ALERT MODAL -->
@@ -446,7 +445,10 @@
     }
   }
 
-  async function checkAndRestoreActiveSession() {
+  async function checkAndRestoreActiveSession(urlTableParam) {
+    // FIX: Ignore restoration if user explicitly scanned a URL containing a table parameter
+    if (urlTableParam) return false;
+
     try {
       const response = await fetch(`${SCRIPT_URL}?action=client&client=${localUserId}&_nc=${Date.now()}`);
       const data = await response.json();
@@ -468,11 +470,20 @@
 
   window.addEventListener('DOMContentLoaded', async () => {
     try {
-      const isRedirecting = await checkAndRestoreActiveSession();
+      const urlParams = new URLSearchParams(window.location.search);
+      let urlTable = urlParams.get('table') || urlParams.get('Table');
+      
+      // FIX: Reset user token if a new table QR code is scanned
+      const storedActiveTable = localStorage.getItem('activeTable');
+      if (urlTable && storedActiveTable && urlTable.replace(/[^0-9]/g, '') !== storedActiveTable) {
+        localUserId = 'USR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        localStorage.setItem('focus_user_id', localUserId);
+      }
+
+      const isRedirecting = await checkAndRestoreActiveSession(urlTable);
       if (isRedirecting) return;
 
-      const urlParams = new URLSearchParams(window.location.search);
-      rawTable = urlParams.get('table') || urlParams.get('Table') || localStorage.getItem('activeTable') || '1';
+      rawTable = urlTable || localStorage.getItem('activeTable') || '1';
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
