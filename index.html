@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focus Timer Dashboard</title>
+  <title>Focus Dashboard</title>
   <style>
     :root {
       --bg-color: #1800ad;
       --card-bg: #FAF9F6;
       --text-main: #1800ad;
-      --text-muted: #5A6B82;
+      --text-muted: #64748B;
       --accent-green: #2E7D32;
       --accent-orange: #E65100;
       --accent-red: #D32F2F;
@@ -20,74 +20,103 @@
       color: var(--text-main);
       padding: 16px;
       margin: 0;
-    }
-    .top-banner {
-      background: #FFFFFF;
-      color: var(--text-main);
-      padding: 12px 16px;
-      border-radius: 12px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 0.95rem;
-      max-width: 400px;
-      margin: 0 auto 16px auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
     .dashboard {
       background: var(--card-bg);
       border-radius: 20px;
-      padding: 24px 16px;
-      max-width: 400px;
-      margin: 0 auto;
+      padding: 24px 20px;
+      max-width: 380px;
+      width: 100%;
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-sizing: border-box;
     }
-    .phase-badge {
-      background: #E2E8F0;
-      padding: 6px 14px;
-      border-radius: 20px;
+    .top-banner {
+      background: #FFFFFF;
+      color: var(--text-main);
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-align: center;
       font-weight: bold;
-      font-size: 0.85rem;
-      display: inline-block;
-      margin-bottom: 12px;
+      font-size: 0.9rem;
+      border: 1px solid #E2E8F0;
+      margin-bottom: 16px;
+    }
+    h1.table-title {
+      margin: 12px 0 18px 0;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
     .timer-container {
       display: flex;
-      justify-content: space-around;
-      margin: 16px 0;
-      background: #FFFFFF;
-      padding: 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid #E2E8F0;
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: #F8FAFC;
+      transition: background 0.3s ease;
     }
     .timer-box {
+      flex: 1;
+      padding: 16px 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .timer-box:first-child {
+      border-right: 1px solid #E2E8F0;
     }
     .timer-label {
-      font-size: 0.75rem;
-      font-weight: bold;
+      font-size: 0.7rem;
+      font-weight: 800;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
     }
     .timer-val {
       font-size: 1.8rem;
       font-weight: bold;
       font-family: monospace;
       color: var(--text-main);
+      transition: color 0.3s ease;
     }
-    .tagline {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin: 12px 0 20px 0;
-      min-height: 40px;
+
+    /* Dynamic Tint Classes */
+    .tint-buffer-active { background: #FFF3E0 !important; }
+    .tint-buffer-active .timer-val { color: var(--accent-orange) !important; }
+    .tint-buffer-active .timer-label { color: #B26A00 !important; }
+
+    .tint-focus-active { background: #E8F5E9 !important; }
+    .tint-focus-active .timer-val { color: var(--accent-green) !important; }
+    .tint-focus-active .timer-label { color: #1B5E20 !important; }
+
+    .tint-muted { background: #F1F5F9 !important; }
+    .tint-muted .timer-val { color: #94A3B8 !important; }
+
+    .timer-container.expired-mode {
+      background: #FFEBEE !important;
+      border-color: #FFCDD2 !important;
     }
+    .timer-container.expired-mode .timer-box {
+      background: transparent !important;
+    }
+    .timer-container.expired-mode .timer-val {
+      color: #757575 !important;
+    }
+
     .btn-action {
       border: none;
-      padding: 12px 16px;
-      border-radius: 8px;
+      padding: 14px 16px;
+      border-radius: 10px;
       font-weight: bold;
       cursor: pointer;
       width: 100%;
@@ -96,15 +125,18 @@
       text-decoration: none;
       display: block;
       box-sizing: border-box;
+      transition: opacity 0.2s;
     }
+    .btn-action:active { opacity: 0.85; }
     .btn-menu { background: var(--accent-green); color: #FFFFFF; }
     .btn-end { background: var(--accent-red); color: #FFFFFF; }
-    
+    .btn-renew { background: #2563EB; color: #FFFFFF; }
+
     .audio-panel {
-      margin-top: 16px;
+      margin-top: 20px;
       background: #FFFFFF;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 14px;
+      border-radius: 12px;
       border: 1px solid #E2E8F0;
       font-size: 0.85rem;
       text-align: left;
@@ -115,7 +147,7 @@
       font-weight: bold;
       color: var(--text-main);
     }
-    
+
     /* Modal Styles */
     .modal {
       display: none;
@@ -147,37 +179,40 @@
 </head>
 <body>
 
-  <div class="top-banner">
-    Thank you! Please finalize your order at the counter.
-  </div>
-
   <div class="dashboard">
-    <span id="phaseBadge" class="phase-badge">Initializing Timer...</span>
-    <h1 id="tableDisplay" style="margin: 8px 0;">Table --</h1>
+    <!-- Single Frame Upper Message -->
+    <div class="top-banner">
+      Thank you! Please finalize your order at the counter.
+    </div>
 
-    <div class="timer-container">
-      <div class="timer-box">
+    <h1 id="tableDisplay" class="table-title">Table --</h1>
+
+    <!-- Split Timer Block -->
+    <div class="timer-container" id="timerContainer">
+      <div class="timer-box" id="bufferBox">
         <span class="timer-label">Buffer Walk</span>
         <span id="bufferTimer" class="timer-val">02:00</span>
       </div>
-      <div class="timer-box" style="border-left: 1px solid #E2E8F0; padding-left: 16px;">
+      <div class="timer-box" id="focusBox">
         <span class="timer-label">Focus Session</span>
         <span id="focusTimer" class="timer-val">45:00</span>
       </div>
     </div>
 
-    <p id="tagline" class="tagline">Connecting to table system...</p>
+    <!-- Navigation & Session Buttons -->
+    <a id="menuBtn" class="btn-action btn-menu" href="#">Go to Menu ☕</a>
+    <button id="sessionBtn" class="btn-action btn-end" onclick="handleSessionButtonClick()">End Session</button>
 
-    <a id="menuBtn" class="btn-action btn-menu" href="#">to the menu ☕</a>
-    <button class="btn-action btn-end" onclick="openConfirmModal()">End Session</button>
-
+    <!-- Audio Settings Panel -->
     <div class="audio-panel">
       <label>
         <span>Reminder Volume</span>
         <span id="volVal">35</span>
       </label>
-      <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:6px;" oninput="updateVolume(this.value)">
-      <button class="btn-action" style="margin-top:8px; padding:6px; background:#E2E8F0; color:#1800ad;" onclick="playChimeSound()">Test Reminder Chime 🔔</button>
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:8px;" oninput="updateVolume(this.value)">
+      <button class="btn-action" style="margin-top:10px; padding:8px; background:#E2E8F0; color:#1800ad;" onclick="playChimeSound()">
+        Test 7-Min Reminder 🔔
+      </button>
     </div>
   </div>
 
@@ -197,7 +232,7 @@
   <div id="thankYouModal" class="modal">
     <div class="modal-content">
       <h2 style="color:var(--accent-green); margin-top:0;">Thank You!</h2>
-      <p style="color:var(--text-muted);">Your session has ended. We hope you had a productive focus session!</p>
+      <p style="color:var(--text-muted);">Your session has ended. We hope you had a productive time!</p>
       <button class="btn-action btn-menu" onclick="closeThankYouModal()">Close</button>
     </div>
   </div>
@@ -211,12 +246,15 @@
   const clientToken = urlParams.get("client_token") || localStorage.getItem("focus_user_id") || "USR-GUEST";
 
   document.getElementById("tableDisplay").innerText = `Table ${rawTable}`;
-  document.getElementById("menuBtn").href = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}`;
+  
+  const menuUrl = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}`;
+  document.getElementById("menuBtn").href = menuUrl;
 
   let targetEndTimestampMs = null;
   let audioCtx = null;
   let alertVolume = 0.35;
   let hasPlayed7MinWarning = false;
+  let isSessionExpired = false;
 
   function updateVolume(val) {
     document.getElementById('volVal').innerText = val;
@@ -241,7 +279,7 @@
         osc.start(now + (index * 0.15));
         osc.stop(now + (index * 0.15) + 0.6);
       });
-    } catch (e) { console.warn("Audio disabled:", e); }
+    } catch (e) { console.warn("Audio error:", e); }
   }
 
   function initializeTimerState() {
@@ -274,7 +312,7 @@
           }
         }
       }
-    } catch (e) { console.warn("Sync warning:", e); }
+    } catch (e) { console.warn("Sync error:", e); }
   }
 
   function updateDisplay() {
@@ -286,7 +324,7 @@
       return;
     }
 
-    // 7-minute warning sound trigger (420 seconds left)
+    // Sound chime trigger at 7 minutes remaining (420 seconds)
     if (totalSecRemaining <= 420 && !hasPlayed7MinWarning) {
       hasPlayed7MinWarning = true;
       playChimeSound();
@@ -295,44 +333,60 @@
     const bufferSecLeft = Math.max(0, totalSecRemaining - 2700);
     const focusSecLeft = Math.min(2700, totalSecRemaining);
 
-    // Buffer display
+    // Render values
     const bMins = Math.floor(bufferSecLeft / 60);
     const bSecs = bufferSecLeft % 60;
     document.getElementById("bufferTimer").innerText = `${bMins.toString().padStart(2,'0')}:${bSecs.toString().padStart(2,'0')}`;
 
-    // Focus display
     const fMins = Math.floor(focusSecLeft / 60);
     const fSecs = focusSecLeft % 60;
     document.getElementById("focusTimer").innerText = `${fMins.toString().padStart(2,'0')}:${fSecs.toString().padStart(2,'0')}`;
 
-    const badge = document.getElementById("phaseBadge");
-    const tagline = document.getElementById("tagline");
+    // Tint logic update
+    const container = document.getElementById("timerContainer");
+    const bufferBox = document.getElementById("bufferBox");
+    const focusBox = document.getElementById("focusBox");
+
+    container.classList.remove("expired-mode");
 
     if (totalSecRemaining > 2700) {
-      badge.innerText = "Cashier Walk Buffer";
-      badge.style.background = "#FFC107";
-      badge.style.color = "#1800ad";
-      tagline.innerText = "Please place your order at the counter and claim your seat.";
-    } else if (totalSecRemaining > 420) {
-      badge.innerText = "Focus Session Active";
-      badge.style.background = "#2E7D32";
-      badge.style.color = "#FFFFFF";
+      // Buffer phase active
+      bufferBox.className = "timer-box tint-buffer-active";
+      focusBox.className = "timer-box tint-muted";
     } else {
-      badge.innerText = "Session Expiring Soon";
-      badge.style.background = "#E65100";
-      badge.style.color = "#FFFFFF";
-      tagline.innerText = "Less than 7 minutes remaining. Prepare to wrap up your session.";
+      // Focus phase active
+      bufferBox.className = "timer-box tint-muted";
+      focusBox.className = "timer-box tint-focus-active";
     }
   }
 
   function renderExpiredUI() {
+    isSessionExpired = true;
     localStorage.removeItem(`focus_target_end_table_${rawTable}`);
+
     document.getElementById("bufferTimer").innerText = "00:00";
     document.getElementById("focusTimer").innerText = "00:00";
-    document.getElementById("phaseBadge").innerText = "Session Completed";
-    document.getElementById("phaseBadge").style.background = "#D32F2F";
-    document.getElementById("phaseBadge").style.color = "#FFFFFF";
-    document.getElementById("tagline").innerText = "This table session has ended. Start another one? ";
+
+    const container = document.getElementById("timerContainer");
+    const bufferBox = document.getElementById("bufferBox");
+    const focusBox = document.getElementById("focusBox");
+
+    container.className = "timer-container expired-mode";
+    bufferBox.className = "timer-box";
+    focusBox.className = "timer-box";
+
+    // Switch action button to renewal mode
+    const btn = document.getElementById("sessionBtn");
+    btn.innerText = "Renew Session 🔄";
+    btn.className = "btn-action btn-renew";
+  }
+
+  function handleSessionButtonClick() {
+    if (isSessionExpired) {
+      window.location.href = menuUrl;
+    } else {
+      openConfirmModal();
+    }
   }
 
   function openConfirmModal() { document.getElementById("confirmModal").style.display = "flex"; }
