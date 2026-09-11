@@ -41,12 +41,15 @@
 
     .header-bar {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
+      position: relative;
       margin-bottom: 16px;
     }
 
     .menu-btn {
+      position: absolute;
+      right: 0;
       background: transparent;
       border: 1px solid var(--border-color);
       border-radius: 8px;
@@ -333,8 +336,8 @@
 
     <div class="header-bar">
       <h1 id="tableTitle">TABLE 1</h1>
-      <!-- Change the href below to your actual ordering menu URL -->
-      <a href="https://your-menu-ordering-url.com" class="menu-btn" title="Menu">☰ Menu</a>
+      <!-- Menu button with coffee emoji -->
+      <a href="https://your-menu-ordering-url.com" class="menu-btn" title="Menu">☕ Menu</a>
     </div>
 
     <div id="timersContainer" class="timers-container">
@@ -363,8 +366,11 @@
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
     
-    <!-- Test Sound Button permanently under the I'm leaving button -->
-    <button class="btn" style="background: #E2E8F0; color: var(--text-main); margin-top: 8px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
+    <!-- Test Sound Button grouped with the volume slider frame inside the same container level structure -->
+    <div style="background: #E2E8F0; padding: 12px; border-radius: 12px; margin-top: 8px;">
+      <input type="range" id="volumeSliderSecondary" min="0" max="100" value="35" oninput="updateVolume(this.value)" style="width: 100%; margin-bottom: 8px; accent-color: var(--royal-blue);">
+      <button class="btn" style="background: #FFFFFF; color: var(--text-main); margin-top: 0; font-size: 0.85rem; border: 1px solid var(--border-color);" onclick="playChime('7min')">Test Sound 🔊</button>
+    </div>
   </div>
 
   <div id="customModalOverlay" class="custom-modal-overlay">
@@ -394,6 +400,8 @@
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
+      if(document.getElementById('volumeSlider')) document.getElementById('volumeSlider').value = val;
+      if(document.getElementById('volumeSliderSecondary')) document.getElementById('volumeSliderSecondary').value = val;
       alertVolume = val / 100;
     }
 
