@@ -3,159 +3,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Session Dashboard</title>
+  <title>Micro Office Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root {
-      --royal-blue: #1a365d;
-      --text-main: #2d3748;
-      --text-muted: #718096;
-      --bg-color: #f7fafc;
-      --card-bg: #ffffff;
-      --warning-color: #dd6b20;
-      --expired-color: #e53e3e;
-      --border-color: #e2e8f0;
-    }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       min-height: 100vh;
-      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1);
-      padding: 24px;
+    .card-custom {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 2rem;
       width: 100%;
-      max-width: 400px;
-      text-align: center;
-      border: 1px solid var(--border-color);
+      max-width: 450px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
-
-    h1 {
-      margin-top: 0;
-      font-size: 1.5rem;
-      color: var(--royal-blue);
-    }
-
     .timer-display {
-      font-size: 3rem;
-      font-weight: bold;
-      margin: 16px 0;
-      font-variant-numeric: tabular-nums;
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: #38bdf8;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
     }
-
     .buffer-display {
       font-size: 1.25rem;
-      color: var(--text-muted);
-      margin-bottom: 12px;
+      color: #94a3b8;
     }
-
-    .warning { color: var(--warning-color); }
-    .expired { color: var(--expired-color); }
-
-    .btn {
-      background-color: var(--royal-blue);
-      color: white;
+    .warning {
+      color: #f59e0b !important;
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.3) !important;
+    }
+    .expired {
+      color: #ef4444 !important;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
+    }
+    .btn-action {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
       border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem;
+      border-radius: 8px;
       width: 100%;
-      margin-top: 10px;
-      transition: background-color 0.2s;
+      margin-top: 1rem;
+      transition: all 0.2s;
     }
-
-    .btn:hover { opacity: 0.9; }
-    .btn-secondary { background-color: var(--text-muted); }
-
+    .btn-action:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    .btn-secondary-custom {
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-weight: 600;
+      padding: 0.75rem;
+      border-radius: 8px;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .btn-secondary-custom:hover {
+      background: rgba(71, 85, 105, 0.8);
+      color: white;
+    }
     .status-text {
       font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-top: 8px;
+      color: #64748b;
+      margin-top: 0.5rem;
     }
-
     .status-text.alert-active {
-      color: var(--warning-color);
-      font-weight: bold;
+      color: #38bdf8;
     }
-
-    .panel {
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    /* Modal Overlay */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 300px;
-      width: 90%;
-      text-align: center;
+    /* Custom Modal Dark Theme */
+    .modal-content-dark {
+      background-color: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
     }
   </style>
 </head>
 <body>
 
-  <div class="card" id="appCard">
-    <h1 id="tableTitle">TABLE 1</h1>
+  <div class="card-custom text-center" id="appCard">
+    <h2 id="tableTitle" class="fw-bold mb-3 text-uppercase tracking-wide" style="color: #cbd5e1;">TABLE 1</h2>
 
-    <div id="bufferSection" class="buffer-display">
+    <div id="bufferSection" class="buffer-display mb-2">
       Buffer: <span id="bufferTimer">02:00</span>
     </div>
 
-    <div id="mainTimer" class="timer-display">45:00</div>
+    <div id="mainTimer" class="timer-display my-3">45:00</div>
 
-    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">Enable Alerts</button>
+    <button id="notifyBtn" class="btn btn-action" onclick="enablePushNotifications()">Enable Alerts</button>
     <div id="statusText" class="status-text">Click above to receive notifications</div>
 
-    <div id="audioSettingsPanel" class="panel" style="display: none;">
-      <label for="volControl" style="font-size: 0.85rem;">Alert Volume: <span id="volVal">35</span>%</label>
-      <input type="range" id="volControl" min="0" max="100" value="35" style="width: 100%;" oninput="updateVolume(this.value)">
+    <div id="audioSettingsPanel" class="mt-3 pt-3 border-top border-secondary" style="display: none;">
+      <label for="volControl" class="form-label text-muted small">Alert Volume: <span id="volVal">35</span>%</label>
+      <input type="range" class="form-range" id="volControl" min="0" max="100" value="35" oninput="updateVolume(this.value)">
     </div>
 
-    <button id="renewBtn" class="btn" style="display: none;" onclick="startRenewal()">Renew Session</button>
-    <button id="leaveBtn" class="btn btn-secondary" style="display: none; margin-top: 8px;" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
+    <button id="renewBtn" class="btn btn-action" style="display: none;" onclick="startRenewal()">Renew Session</button>
+    <button id="leaveBtn" class="btn btn-secondary-custom" style="display: none;" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
   </div>
 
   <!-- Custom Alert Modal -->
-  <div id="customModalOverlay" class="modal-overlay">
-    <div class="modal-content">
-      <p id="customModalText"></p>
-      <button class="btn" onclick="closeCustomModal()">OK</button>
+  <div class="modal fade" id="customModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content modal-content-dark text-center p-3">
+        <div class="modal-body" id="customModalText"></div>
+        <button type="button" class="btn btn-action mt-2" data-bs-dismiss="modal">OK</button>
+      </div>
     </div>
   </div>
 
   <!-- Confirmation Modal -->
-  <div id="confirmModalOverlay" class="modal-overlay">
-    <div class="modal-content">
-      <p>Are you sure you want to clear this table and end your session?</p>
-      <button class="btn" onclick="confirmClearTable()">Yes, End Session</button>
-      <button class="btn btn-secondary" style="margin-top: 8px;" onclick="closeConfirmModal()">Cancel</button>
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content modal-content-dark text-center p-3">
+        <div class="modal-body">
+          Are you sure you want to clear this table and end your session?
+        </div>
+        <div class="d-flex flex-column gap-2 mt-3">
+          <button type="button" class="btn btn-action" onclick="confirmClearTable()">Yes, End Session</button>
+          <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
 
@@ -180,26 +163,20 @@
 
   function showCustomModal(message) {
     const textEl = document.getElementById('customModalText');
-    const modalEl = document.getElementById('customModalOverlay');
-    if (textEl && modalEl) {
-      textEl.innerText = message;
-      modalEl.classList.add('show');
+    if (textEl) textEl.innerText = message;
+    const modalEl = document.getElementById('customModal');
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
     }
   }
 
-  function closeCustomModal() {
-    const modalEl = document.getElementById('customModalOverlay');
-    if (modalEl) modalEl.classList.remove('show');
-  }
-
   function promptLeaveConfirmation() {
-    const modalEl = document.getElementById('confirmModalOverlay');
-    if (modalEl) modalEl.classList.add('show');
-  }
-
-  function closeConfirmModal() {
-    const modalEl = document.getElementById('confirmModalOverlay');
-    if (modalEl) modalEl.classList.remove('show');
+    const modalEl = document.getElementById('confirmModal');
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
   }
 
   async function requestWakeLock() {
@@ -327,17 +304,16 @@
     }
   }
 
-  // Active Session Auto-Routing (Step 2)
+  // Active Session Restoration Interceptor
   async function checkAndRestoreActiveSession() {
     try {
       const response = await fetch(`${SCRIPT_URL}?action=client&client=${localUserId}&_nc=${Date.now()}`);
       const data = await response.json();
 
-      if (data.status === 'success' && data.activeSession) {
-        const activeTable = data.activeSession.table;
+      if (data.status === 'success' && data.activeSession && data.activeSession.table) {
+        const activeTable = String(data.activeSession.table);
         const currentUrlParams = new URLSearchParams(window.location.search);
         
-        // Redirect to active table if user is on wrong table or menu
         if (currentUrlParams.get('table') !== activeTable) {
           window.location.href = `${window.location.pathname}?table=${activeTable}`;
           return true;
@@ -349,14 +325,12 @@
     return false;
   }
 
-  // Safe DOM-Ready App Startup (Step 1 + Step 2)
+  // Safe DOM-Ready App Startup
   window.addEventListener('DOMContentLoaded', async () => {
     try {
-      // Execute Step 2 auto-router
       const isRedirecting = await checkAndRestoreActiveSession();
       if (isRedirecting) return;
 
-      // Execute Step 1 DOM bindings
       const urlParams = new URLSearchParams(window.location.search);
       rawTable = urlParams.get('table') || urlParams.get('Table') || localStorage.getItem('activeTable') || '1';
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
@@ -516,7 +490,12 @@
   }
 
   async function confirmClearTable() {
-    closeConfirmModal();
+    const confirmModalEl = document.getElementById('confirmModal');
+    if (confirmModalEl) {
+      const modal = bootstrap.Modal.getInstance(confirmModalEl);
+      if (modal) modal.hide();
+    }
+
     var tableNum = localStorage.getItem('activeTable') || rawTable;
 
     if (timerInterval) clearInterval(timerInterval);
@@ -525,9 +504,9 @@
     const appCard = document.getElementById('appCard');
     if (appCard) {
       appCard.innerHTML = `
-        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
-        <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
-        <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
+        <h3 class="fw-bold mb-3" style="color: #38bdf8;">Session Ended</h3>
+        <p class="mb-2" style="color: #cbd5e1;">Thank you for visiting!</p>
+        <p class="text-muted small">You may now safely close this window.</p>
       `;
     }
 
