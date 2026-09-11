@@ -1,493 +1,610 @@
-<!-- ========================================== -->
-<!-- CLIENT DASHBOARD (landingpageblatime.html) -->
-<!-- ========================================== -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focus Dashboard</title>
+  <title>Focus Session</title>
   <style>
     :root {
       --bg-color: #1800ad;
       --card-bg: #FAF9F6;
+      --royal-blue: #1800ad;
+      --royal-blue-hover: #12008A;
       --text-main: #1800ad;
-      --text-muted: #64748B;
-      --accent-green: #2E7D32;
-      --accent-orange: #E65100;
+      --text-muted: #5A6B82;
+      --border-color: #E2E8F0;
       --accent-red: #D32F2F;
+      --accent-orange: #E65100;
+      --accent-green: #2E7D32;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg-color);
-      color: var(--text-main);
-      padding: 16px;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      background: var(--bg-color); 
+      color: var(--text-main); 
+      text-align: center; 
+      padding: 20px; 
+      margin: 0; 
     }
-    .dashboard {
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 24px 20px;
-      max-width: 380px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      box-sizing: border-box;
+
+    .card { 
+      background: var(--card-bg); 
+      border-radius: 20px; 
+      padding: 28px 24px; 
+      max-width: 360px; 
+      margin: 30px auto; 
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+      position: relative;
     }
-    .top-banner {
-      background: #FFFFFF;
-      color: var(--text-main);
-      padding: 12px 14px;
-      border-radius: 12px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 0.9rem;
-      border: 1px solid #E2E8F0;
-      margin-bottom: 16px;
+
+    .badge { 
+      background: rgba(24, 0, 173, 0.08); 
+      color: var(--royal-blue); 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+      display: inline-block; 
+      margin-bottom: 20px; 
+      border: 1px solid rgba(24, 0, 173, 0.12);
     }
-    h1.table-title {
-      margin: 12px 0 18px 0;
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-    .timer-container {
-      display: flex;
-      border-radius: 14px;
-      border: 1px solid #E2E8F0;
-      overflow: hidden;
-      margin-bottom: 20px;
-      background: #F8FAFC;
-      transition: background 0.3s ease;
-    }
-    .timer-box {
-      flex: 1;
-      padding: 16px 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-    }
-    .timer-box:first-child {
-      border-right: 1px solid #E2E8F0;
-    }
-    .timer-label {
-      font-size: 0.7rem;
-      font-weight: 800;
-      color: var(--text-muted);
-      text-transform: uppercase;
+
+    h1 { 
+      font-size: 1.3rem; 
+      margin-bottom: 16px; 
+      margin-top: 0; 
+      color: var(--royal-blue);
       letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-    .timer-val {
-      font-size: 1.8rem;
-      font-weight: bold;
-      font-family: monospace;
-      color: var(--text-main);
-      transition: color 0.3s ease;
+      text-transform: uppercase;
     }
 
-    .tint-buffer-active { background: #FFF3E0 !important; }
-    .tint-buffer-active .timer-val { color: var(--accent-orange) !important; }
-    .tint-buffer-active .timer-label { color: #B26A00 !important; }
-
-    .tint-focus-active { background: #E8F5E9 !important; }
-    .tint-focus-active .timer-val { color: var(--accent-green) !important; }
-    .tint-focus-active .timer-label { color: #1B5E20 !important; }
-
-    .tint-muted { background: #F1F5F9 !important; }
-    .tint-muted .timer-val { color: #94A3B8 !important; }
-
-    .timer-container.expired-mode {
-      background: #FFEBEE !important;
-      border-color: #FFCDD2 !important;
-    }
-    .timer-container.expired-mode .timer-box {
-      background: transparent !important;
-    }
-    .timer-container.expired-mode .timer-val {
-      color: #757575 !important;
+    .timer-section { 
+      background: #FFFFFF; 
+      border-radius: 14px; 
+      padding: 14px; 
+      margin-bottom: 16px; 
+      border: 1px solid var(--border-color);
     }
 
-    .btn-action {
-      border: none;
-      padding: 14px 16px;
-      border-radius: 10px;
-      font-weight: bold;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-      font-size: 0.95rem;
-      text-decoration: none;
-      display: block;
-      box-sizing: border-box;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
+    .timer-label { 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+      letter-spacing: 1.2px; 
+      color: var(--text-muted); 
+      margin-bottom: 4px; 
+      font-weight: 600;
     }
-    .btn-action:hover {
-      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
-      transform: translateY(-1px);
+
+    .main-timer { 
+      font-size: 3.2rem; 
+      font-weight: 800; 
+      color: var(--royal-blue); 
     }
-    .btn-action:active { 
-      transform: translateY(1px);
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-      opacity: 0.85; 
+
+    .buffer-timer { 
+      font-size: 1.8rem; 
+      font-weight: 700; 
+      color: var(--royal-blue); 
     }
-    
-    .btn-menu { background: var(--bg-color); color: #FFFFFF; }
-    .btn-reminder { background: var(--bg-color); color: #FFFFFF; }
-    .btn-renew { background: #2563EB; color: #FFFFFF; }
-    
-    .btn-end { 
+
+    .warning { color: var(--accent-orange) !important; }
+    .expired { color: var(--accent-red) !important; }
+
+    .btn { 
+      background: var(--royal-blue); 
+      color: #FFFFFF; 
+      border: none; 
+      padding: 14px 20px; 
+      font-size: 1rem; 
+      font-weight: 600; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      width: 100%; 
+      margin-top: 10px; 
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+      background: var(--royal-blue-hover);
+    }
+
+    .btn-renew { 
+      background: var(--royal-blue); 
+      display: block; 
+      margin-top: 15px; 
+    }
+
+    .btn-leave { 
       background: transparent; 
       color: var(--accent-red); 
-      border: 2px solid var(--accent-red); 
+      border: 2px solid var(--accent-red);
+      display: block; 
+      margin-top: 12px; 
     }
 
-    .reminder-tagline {
-      margin-top: 10px;
-      padding: 12px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      color: var(--text-muted);
-      background: #F1F5F9;
-      border-radius: 10px;
-      border: 1px dashed #CBD5E1;
+    .status { 
+      font-size: 0.85rem; 
+      color: var(--text-muted); 
+      margin-top: 14px; 
+    }
+
+    .status.alert-active {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    /* Custom Popup Modal Styles */
+    .custom-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .custom-modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .custom-modal {
+      background: #FFFFFF;
+      padding: 20px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      max-width: 280px;
+      width: 80%;
       text-align: center;
     }
 
-    .audio-panel {
-      margin-top: 20px;
+    .custom-modal-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--royal-blue);
+      margin-bottom: 16px;
+    }
+
+    .custom-modal-btn {
+      background: var(--royal-blue);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      background: var(--accent-red);
+      color: #FFFFFF;
+    }
+
+    .btn-modal-confirm {
+      background: #E2E8F0;
+      color: var(--text-muted);
+    }
+
+    .audio-settings {
+      display: none; /* Hidden by default until 7-min alert is pressed */
+      margin-top: 15px;
       background: #FFFFFF;
-      padding: 14px;
-      border-radius: 12px;
-      border: 1px solid #E2E8F0;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
       font-size: 0.85rem;
       text-align: left;
     }
-    .audio-panel label {
+    .audio-settings label {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-weight: bold;
       color: var(--text-main);
     }
-    
-    input[type=range] {
-      accent-color: var(--bg-color);
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.75);
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-    .modal-content {
-      background: #FAF9F6;
-      color: var(--text-main);
-      padding: 24px;
-      border-radius: 16px;
-      max-width: 320px;
+    .audio-settings input[type="range"] {
       width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      margin-top: 5px;
     }
-    .modal-btns {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .btn-modal-cancel { background: var(--accent-red); color: #FFFFFF; }
-    .btn-modal-confirm { background: #E2E8F0; color: var(--text-main); }
   </style>
 </head>
 <body>
 
-  <div class="dashboard">
-    <div class="top-banner">
-      Thank you! Please finalize your order at the counter.
+  <div id="appCard" class="card">
+    <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
+
+    <h1 id="tableTitle">TABLE 1</h1>
+
+    <div id="bufferSection" class="timer-section">
+      <div class="timer-label">Cashier Walk Buffer</div>
+      <div id="bufferTimer" class="buffer-timer">02:00</div>
     </div>
 
-    <h1 id="tableDisplay" class="table-title">Table --</h1>
-
-    <div class="timer-container" id="timerContainer">
-      <div class="timer-box" id="bufferBox">
-        <span class="timer-label">Buffer Walk</span>
-        <span id="bufferTimer" class="timer-val">02:00</span>
-      </div>
-      <div class="timer-box" id="focusBox">
-        <span class="timer-label">Focus Session</span>
-        <span id="focusTimer" class="timer-val">45:00</span>
-      </div>
+    <div id="mainTimerSection" class="timer-section">
+      <div class="timer-label">Focus Session</div>
+      <div id="mainTimer" class="main-timer">45:00</div>
     </div>
 
-    <a id="menuBtn" class="btn-action btn-menu" href="#">Go to Menu ☕</a>
-    
-    <button id="reminderBtn" class="btn-action btn-reminder" onclick="callReminder()">Call 7-Min Reminder ⏰</button>
-    <div id="reminderTagline" class="reminder-tagline" style="display: none;">7 minutes reminder was sent</div>
-    
-    <button id="sessionBtn" class="btn-action btn-end" onclick="handleSessionButtonClick()">End Session</button>
+    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
+    <div id="statusText" class="status">No personal data required.</div>
 
-    <div class="audio-panel">
+    <!-- Volume Control Panel (0 to 100 scale, hidden initially, disappears with button) -->
+    <div class="audio-settings" id="audioSettingsPanel">
       <label>
-        <span>Reminder Volume</span>
+        <span>Alert Volume</span>
         <span id="volVal">35</span>
       </label>
-      <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:8px;" oninput="updateVolume(this.value)">
-      <button class="btn-action" style="margin-top:10px; padding:8px; background:#E2E8F0; color:#1800ad;" onclick="playReminderChime()">
-        Test 7-Min Chime 🔔
-      </button>
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)">
+      <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
+    </div>
+
+    <!-- EXPIRED UI CONTROLS -->
+    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
+    <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
+  </div>
+
+  <!-- CUSTOM ALERT MODAL -->
+  <div id="customModalOverlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
+      <button class="custom-modal-btn" onclick="closeCustomModal()">OK</button>
     </div>
   </div>
 
-  <div id="confirmModal" class="modal">
-    <div class="modal-content">
-      <h3 style="margin-top:0;">End Focus Session?</h3>
-      <p style="color:var(--text-muted); font-size:0.9rem;">Are you sure you want to end your time early and free up this table?</p>
-      <div class="modal-btns">
-        <button class="btn-action btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn-action btn-modal-confirm" onclick="executeEndSession()">Approve</button>
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div id="confirmModalOverlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
+      <div class="modal-actions">
+        <button class="custom-modal-btn btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="custom-modal-btn btn-modal-confirm" onclick="confirmClearTable()">End Session</button>
       </div>
     </div>
   </div>
 
-<script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjQtbuew_onZqKqSEO49KeMQwIwm-t5VBwwSC1l8XcBE-7bWcjcnUDS4Jv9lNHgC2HbQ/exec";
-  const TALLY_BASE_URL = "https://tally.so/r/aQqkWX";
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const rawTable = urlParams.get("table") || "1";
-  const clientToken = urlParams.get("client_token") || localStorage.getItem("focus_user_id") || "USR-GUEST";
+    let rawTable = '1';
+    let wakeLock = null;
+    let timerInterval = null;
+    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain) when no 7min alert choice was selected
 
-  document.getElementById("tableDisplay").innerText = `Table ${rawTable}`;
-  
-  const menuUrl = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}&skipLanding=true`;
-  document.getElementById("menuBtn").href = menuUrl;
+    function updateVolume(val) {
+      document.getElementById('volVal').innerText = val;
+      alertVolume = val / 100;
+    }
 
-  let targetEndTimestampMs = null;
-  let audioCtx = null;
-  let alertVolume = 0.35;
-  let hasPlayed7MinWarning = false;
-  let isSessionExpired = false;
-  let wakeLock = null;
+    function showCustomModal(message) {
+      document.getElementById('customModalText').innerText = message;
+      document.getElementById('customModalOverlay').classList.add('show');
+    }
 
-  async function requestWakeLock() {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', () => { wakeLock = null; });
+    function closeCustomModal() {
+      document.getElementById('customModalOverlay').classList.remove('show');
+    }
+
+    function promptLeaveConfirmation() {
+      document.getElementById('confirmModalOverlay').classList.add('show');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModalOverlay').classList.remove('show');
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.error(`Wake Lock error: ${err.name}, ${err.message}`);
       }
+    }
+
+    function playChime(type) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        if ('vibrate' in navigator) {
+          if (type === '7min') {
+            navigator.vibrate([200, 100, 200]);
+          } else if (type === 'expired') {
+            navigator.vibrate([400, 100, 400, 100, 400]);
+          }
+        }
+
+        function tone(freq, startTime, duration) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+
+          const effectiveGain = alertVolume * 0.9;
+          gain.gain.setValueAtTime(effectiveGain, ctx.currentTime + startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(ctx.currentTime + startTime);
+          osc.stop(ctx.currentTime + startTime + duration);
+        }
+
+        if (type === '7min') {
+          tone(880, 0, 0.3);
+          tone(1046.50, 0.35, 0.6);
+          tone(880, 1.0, 0.3);
+          tone(1046.50, 1.35, 0.6);
+        } else if (type === 'expired') {
+          const pattern = [0, 0.8, 1.6];
+          pattern.forEach(offset => {
+            tone(1046.50, offset + 0.0, 0.2);
+            tone(1046.50, offset + 0.25, 0.2);
+            tone(1318.51, offset + 0.5, 0.4);
+          });
+        }
+      } catch (e) {
+        console.log('Audio playback blocked or unsupported', e);
+      }
+    }
+
+    function renderExpiredUI() {
+      const notifyBtn = document.getElementById('notifyBtn');
+      const statusText = document.getElementById('statusText');
+      const bufferSection = document.getElementById('bufferSection');
+      const audioSettingsPanel = document.getElementById('audioSettingsPanel');
+
+      if (notifyBtn) notifyBtn.style.display = 'none';
+      if (statusText) statusText.style.display = 'none';
+      if (bufferSection) bufferSection.style.display = 'none';
+      if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
+
+      const mainTimerEl = document.getElementById('mainTimer');
+      mainTimerEl.innerText = "00:00";
+      mainTimerEl.classList.remove('warning');
+      mainTimerEl.classList.add('expired');
+
+      document.getElementById('renewBtn').style.display = "block";
+      document.getElementById('leaveBtn').style.display = "block";
+    }
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
+      rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
+
+      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+
+      document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
+
+      let localUserId = localStorage.getItem('focus_user_id');
+      if (!localUserId) {
+        localUserId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now();
+        localStorage.setItem('focus_user_id', localUserId);
+      }
+
+      fetch(`${SCRIPT_URL}?action=client`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+            const tableData = data.tables[rawTable];
+            if (tableData.userId && sessionId !== 'latest' && tableData.userId !== sessionId) {
+              if (tableData.userId !== localUserId) {
+                document.getElementById('appCard').innerHTML = `
+                  <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--accent-red);">Table Already Booked</div>
+                  <p style="color: var(--text-main); font-size: 1rem; margin-bottom: 8px;">This table is already booked by another user.</p>
+                `;
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+              }
+            }
+          }
+        })
+        .catch(err => console.error("User validation error:", err));
+
+      const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
+      let startTime = localStorage.getItem(storageKey);
+
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;
+      const MAIN_DURATION_MS = 45 * 60 * 1000;
+      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
+
+      if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem(storageKey, startTime);
+      } else {
+        startTime = parseInt(startTime, 10);
+      }
+
+      const sessionExpiryTime = startTime + TOTAL_DURATION_MS;
+      localStorage.setItem('activeTable', rawTable);
+      localStorage.setItem('sessionExpiry', sessionExpiryTime);
+
+      if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
+        const btn = document.getElementById('notifyBtn');
+        const status = document.getElementById('statusText');
+        if (btn) btn.style.display = 'none';
+        if (status) {
+          status.innerText = "You will receive an alert 7 minutes before expiry";
+          status.classList.add('alert-active');
+        }
+        document.getElementById('audioSettingsPanel').style.display = 'block';
+      }
+
+      const bufferTimerEl = document.getElementById('bufferTimer');
+      const mainTimerEl = document.getElementById('mainTimer');
+      let alertPlayed = false;
+      let expiredPlayed = false;
+
+      timerInterval = setInterval(() => {
+        const elapsedMs = Date.now() - startTime;
+
+        if (elapsedMs < BUFFER_DURATION_MS) {
+          let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
+          let bufferSecs = Math.floor(remainingBufferMs / 1000);
+          let bMins = Math.floor(bufferSecs / 60);
+          let bSecs = bufferSecs % 60;
+
+          bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
+          bufferTimerEl.classList.add('warning');
+          mainTimerEl.innerText = "45:00";
+        } 
+        else if (elapsedMs < TOTAL_DURATION_MS) {
+          bufferTimerEl.innerText = "00:00";
+          bufferTimerEl.classList.remove('warning');
+          bufferTimerEl.classList.add('expired');
+
+          let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
+          let mainSecs = Math.floor(remainingMainMs / 1000);
+          let mMins = Math.floor(mainSecs / 60);
+          let mSecs = mainSecs % 60;
+
+          mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+
+          if (mainSecs <= 420) {
+            const notifyBtn = document.getElementById('notifyBtn');
+            const audioSettingsPanel = document.getElementById('audioSettingsPanel');
+            if (notifyBtn) notifyBtn.style.display = 'none';
+            if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
+
+            if (!alertPlayed) {
+              mainTimerEl.classList.add('warning');
+              playChime('7min');
+              requestWakeLock();
+              alertPlayed = true;
+            }
+          }
+        } 
+        else {
+          if (!expiredPlayed) {
+            playChime('expired');
+            requestWakeLock();
+            expiredPlayed = true;
+          }
+
+          renderExpiredUI();
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+
     } catch (err) {
-      console.warn(`${err.name}, ${err.message}`);
-    }
-  }
-
-  document.addEventListener('visibilitychange', async () => {
-    if (wakeLock !== null && document.visibilityState === 'visible') {
-      await requestWakeLock();
-    }
-  });
-
-  requestWakeLock();
-
-  function updateVolume(val) {
-    document.getElementById('volVal').innerText = val;
-    alertVolume = val / 100;
-  }
-
-  function playReminderChime() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      
-      const now = audioCtx.currentTime;
-      [523.25, 659.25].forEach((freq, index) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + (index * 0.2));
-        gain.gain.setValueAtTime(0, now + (index * 0.2));
-        gain.gain.linearRampToValueAtTime(alertVolume * 0.5, now + (index * 0.2) + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + (index * 0.2) + 0.8);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + (index * 0.2));
-        osc.stop(now + (index * 0.2) + 0.9);
-      });
-    } catch (e) { console.warn("Audio error:", e); }
-  }
-
-  function playEndSessionChime() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      
-      const now = audioCtx.currentTime;
-      [261.63, 392.00, 523.25, 659.25].forEach((freq, index) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + (index * 0.25));
-        gain.gain.setValueAtTime(0, now + (index * 0.25));
-        gain.gain.linearRampToValueAtTime(alertVolume * 0.4, now + (index * 0.25) + 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + (index * 0.25) + 1.2);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + (index * 0.25));
-        osc.stop(now + (index * 0.25) + 1.3);
-      });
-    } catch (e) { console.warn("Audio error:", e); }
-  }
-
-  async function callReminder() {
-    playReminderChime();
-    localStorage.setItem(`reminder_sent_${rawTable}`, "true");
-    checkReminderState();
-
-    // Send request to Apps Script backend to log 'SENT' and token data
-    try {
-      await fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`);
-    } catch (e) {
-      console.warn("Failed to log reminder to server:", e);
-    }
-  }
-
-  function checkReminderState() {
-    const isSent = localStorage.getItem(`reminder_sent_${rawTable}`);
-    if (isSent === "true") {
-      document.getElementById("reminderBtn").style.display = "none";
-      document.getElementById("reminderTagline").style.display = "block";
-    } else {
-      document.getElementById("reminderBtn").style.display = "block";
-      document.getElementById("reminderTagline").style.display = "none";
-    }
-  }
-
-  function initializeTimerState() {
-    const storageKey = `focus_target_end_table_${rawTable}`;
-    const savedEnd = localStorage.getItem(storageKey);
-    
-    if (savedEnd && !isNaN(parseInt(savedEnd, 10)) && parseInt(savedEnd, 10) > Date.now()) {
-      targetEndTimestampMs = parseInt(savedEnd, 10);
-    } else {
-      targetEndTimestampMs = Date.now() + (47 * 60 * 1000);
-      localStorage.setItem(storageKey, targetEndTimestampMs);
-    }
-    checkReminderState();
-  }
-
-  function updateDisplay() {
-    const now = Date.now();
-    const totalSecRemaining = Math.floor((targetEndTimestampMs - now) / 1000);
-
-    if (totalSecRemaining <= 0) {
-      renderExpiredUI();
-      return;
+      console.error("Initialization Error:", err);
     }
 
-    if (totalSecRemaining <= 420 && !hasPlayed7MinWarning) {
-      hasPlayed7MinWarning = true;
-      playReminderChime();
+    async function enablePushNotifications() {
+      const btn = document.getElementById('notifyBtn');
+      const status = document.getElementById('statusText');
+
+      requestWakeLock();
+
+      if (!('Notification' in window)) {
+        status.innerText = "Push alerts not supported. Keep tab open for chime.";
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+          
+          // Generate a unique token
+          const tokenVal = 'TKN_' + Math.random().toString(36).substring(2, 10) + Date.now();
+
+          // Send POST request payload configured specifically for Column I (token) and Column H (SENT approval)
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: "enableAlert",
+              table: rawTable,
+              token: tokenVal,
+              statusApproval: "SENT"
+            })
+          });
+
+          localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
+
+          showCustomModal("7 minutes alert confirmed.");
+
+          if (btn) btn.style.display = 'none';
+          if (status) {
+            status.innerText = "You will receive an alert 7 minutes before expiry";
+            status.classList.add('alert-active');
+          }
+
+          document.getElementById('audioSettingsPanel').style.display = 'block';
+        } else {
+          status.innerText = "Permission denied. Keep tab open to track clock.";
+        }
+      } catch (err) {
+        status.innerText = "Could not enable alerts. Keep tab open for chime.";
+      }
     }
 
-    const bufferSecLeft = Math.max(0, totalSecRemaining - 2700);
-    const focusSecLeft = Math.min(2700, totalSecRemaining);
+    function startRenewal() {
+      let countKey = 'renewal_count_' + rawTable;
+      let renewalCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
 
-    const bMins = Math.floor(bufferSecLeft / 60);
-    const bSecs = bufferSecLeft % 60;
-    document.getElementById("bufferTimer").innerText = `${bMins.toString().padStart(2,'0')}:${bSecs.toString().padStart(2,'0')}`;
+      localStorage.setItem(countKey, renewalCount);
 
-    const fMins = Math.floor(focusSecLeft / 60);
-    const fSecs = focusSecLeft % 60;
-    document.getElementById("focusTimer").innerText = `${fMins.toString().padStart(2,'0')}:${fSecs.toString().padStart(2,'0')}`;
+      let evenUneven = (renewalCount % 2 === 0);
 
-    const container = document.getElementById("timerContainer");
-    const bufferBox = document.getElementById("bufferBox");
-    const focusBox = document.getElementById("focusBox");
-
-    container.classList.remove("expired-mode");
-
-    if (totalSecRemaining > 2700) {
-      bufferBox.className = "timer-box tint-buffer-active";
-      focusBox.className = "timer-box tint-muted";
-    } else {
-      bufferBox.className = "timer-box tint-muted";
-      focusBox.className = "timer-box tint-focus-active";
+      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&even_uneven=${evenUneven}`;
     }
-  }
 
-  function renderExpiredUI() {
-    if (!isSessionExpired) {
-      playEndSessionChime();
+    async function confirmClearTable() {
+      closeConfirmModal();
+
+      var tableNum = localStorage.getItem('activeTable') || rawTable;
+
+      if (timerInterval) clearInterval(timerInterval);
+
+      localStorage.setItem('force_clear_table_' + tableNum, Date.now());
+
+      document.getElementById('appCard').innerHTML = `
+        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
+        <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
+      `;
+
+      localStorage.removeItem('activeTable');
+      localStorage.removeItem('sessionExpiry');
+      localStorage.removeItem('renewal_count_' + rawTable);
+
+      try {
+        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
+          method: 'GET',
+          mode: 'no-cors'
+        });
+      } catch (err) {
+        console.log("Background ping sent to LiveDash", err);
+      }
+
+      setTimeout(() => {
+        window.close();
+      }, 2500);
     }
-    isSessionExpired = true;
-    localStorage.removeItem(`focus_target_end_table_${rawTable}`);
-    localStorage.removeItem(`reminder_sent_${rawTable}`);
-
-    document.getElementById("bufferTimer").innerText = "00:00";
-    document.getElementById("focusTimer").innerText = "00:00";
-
-    const container = document.getElementById("timerContainer");
-    const bufferBox = document.getElementById("bufferBox");
-    const focusBox = document.getElementById("focusBox");
-
-    container.className = "timer-container expired-mode";
-    bufferBox.className = "timer-box";
-    focusBox.className = "timer-box";
-
-    const btn = document.getElementById("sessionBtn");
-    btn.innerText = "Renew Session 🔄";
-    btn.className = "btn-action btn-renew";
-  }
-
-  function handleSessionButtonClick() {
-    if (isSessionExpired) {
-      window.location.href = menuUrl;
-    } else {
-      openConfirmModal();
-    }
-  }
-
-  function openConfirmModal() { document.getElementById("confirmModal").style.display = "flex"; }
-  function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
-
-  async function executeEndSession() {
-    closeConfirmModal();
-    try {
-      await fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}&client=${clientToken}`);
-    } catch (e) {
-      console.warn("End session sync error:", e);
-    }
-    localStorage.removeItem(`focus_target_end_table_${rawTable}`);
-    localStorage.removeItem(`reminder_sent_${rawTable}`);
-    
-    // Redirect immediately to clean ended notice page
-    window.location.href = window.location.pathname + `?table=${rawTable}&client_token=${clientToken}&ended=true`;
-  }
-
-  // Check if session was just explicitly terminated/cleared
-  if (urlParams.get("ended") === "true") {
-    document.body.innerHTML = `
-      <div style="background:#FAF9F6; color:#1800ad; padding:30px; border-radius:20px; max-width:380px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3); margin:auto;">
-        <h2 style="color:#2E7D32; margin-top:0;">Session Ended</h2>
-        <p style="color:#64748B; font-size: 1.05rem; line-height: 1.5;">This table session has ended. Thank you and see you soon!</p>
-      </div>
-    `;
-  } else {
-    initializeTimerState();
-    setInterval(updateDisplay, 1000);
-  }
-</script>
+  </script>
 </body>
 </html>
