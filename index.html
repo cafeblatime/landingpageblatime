@@ -61,30 +61,30 @@
 
     .timer-section { 
       background: #FFFFFF; 
-      border-radius: 14px; 
-      padding: 14px; 
-      margin-bottom: 16px; 
+      border-radius: 12px; 
+      padding: 12px; 
+      margin-bottom: 14px; 
       border: 1px solid var(--border-color);
     }
 
     .timer-label { 
       font-size: 0.75rem; 
       text-transform: uppercase; 
-      letter-spacing: 1.2px; 
+      letter-spacing: 1px; 
       color: var(--text-muted); 
       margin-bottom: 4px; 
       font-weight: 600;
     }
 
     .main-timer { 
-      font-size: 3.2rem; 
-      font-weight: 800; 
+      font-size: 2.8rem; 
+      font-weight: 700; 
       color: var(--royal-blue); 
     }
 
     .buffer-timer { 
-      font-size: 1.8rem; 
-      font-weight: 700; 
+      font-size: 1.5rem; 
+      font-weight: 600; 
       color: var(--royal-blue); 
     }
 
@@ -95,18 +95,17 @@
       background: var(--royal-blue); 
       color: #FFFFFF; 
       border: none; 
-      padding: 14px 20px; 
-      font-size: 1rem; 
+      padding: 12px 18px; 
+      font-size: 0.95rem; 
       font-weight: 600; 
-      border-radius: 12px; 
+      border-radius: 10px; 
       cursor: pointer; 
       width: 100%; 
       margin-top: 10px; 
-      transition: background 0.2s ease, transform 0.1s ease;
+      transition: background 0.2s ease;
     }
 
     .btn:active {
-      transform: scale(0.98);
       background: var(--royal-blue-hover);
     }
 
@@ -202,7 +201,7 @@
     }
 
     .audio-settings {
-      display: none; /* Hidden by default until 7-min alert is pressed */
+      display: none;
       margin-top: 15px;
       background: #FFFFFF;
       padding: 10px;
@@ -244,7 +243,6 @@
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
 
-    <!-- Volume Control Panel (0 to 100 scale, hidden initially, disappears with button) -->
     <div class="audio-settings" id="audioSettingsPanel">
       <label>
         <span>Alert Volume</span>
@@ -254,12 +252,10 @@
       <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
 
-    <!-- EXPIRED UI CONTROLS -->
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
   </div>
 
-  <!-- CUSTOM ALERT MODAL -->
   <div id="customModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
@@ -267,7 +263,6 @@
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRMATION MODAL -->
   <div id="confirmModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
@@ -284,7 +279,7 @@
     let rawTable = '1';
     let wakeLock = null;
     let timerInterval = null;
-    let alertVolume = 0.35; // Default 35 volume scale (0.35 gain) when no 7min alert choice was selected
+    let alertVolume = 0.35;
 
     function updateVolume(val) {
       document.getElementById('volVal').innerText = val;
@@ -527,10 +522,8 @@
           const urlParams = new URLSearchParams(window.location.search);
           const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
           
-          // Generate a unique token
           const tokenVal = 'TKN_' + Math.random().toString(36).substring(2, 10) + Date.now();
 
-          // Send POST request payload configured specifically for Column I (token) and Column H (SENT approval)
           fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
