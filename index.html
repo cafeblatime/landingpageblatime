@@ -715,9 +715,15 @@
       localStorage.removeItem('renewal_count_' + rawTable);
 
       try {
-        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`, {
-          method: 'GET',
-          mode: 'no-cors'
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "clear",
+            table: tableNum,
+            client: localUserId
+          })
         });
       } catch (err) {
         console.log("Background ping sent to LiveDash", err);
