@@ -406,7 +406,7 @@
     }
 
     let parsedDate = new Date(rawEnd);
-    if (!isNaN(parsedDate.getTime()) && String(rawEnd).includes("T")) {
+    if (!isNaN(parsedDate.getTime())) {
       return parsedDate.getTime();
     }
 
@@ -427,10 +427,6 @@
 
     let endDate = new Date(now);
     endDate.setHours(hours, minutes, seconds, 0);
-
-    if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
 
     return endDate.getTime();
   }
@@ -509,8 +505,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       let urlTable = urlParams.get('table') || urlParams.get('Table');
 
-      rawTable = urlTable || localStorage.getItem('activeTable') || '1';
-      rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
+      rawTable = (urlTable || localStorage.getItem('activeTable') || '1').replace(/[^0-9]/g, '') || '1';
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
       const tableTitleEl = document.getElementById('tableTitle');
@@ -594,7 +589,7 @@
   async function confirmClearTable() {
     closeConfirmModal();
 
-    var tableNum = localStorage.getItem('activeTable') || rawTable;
+    var tableNum = (localStorage.getItem('activeTable') || rawTable).replace(/[^0-9]/g, '');
 
     const appCard = document.getElementById('appCard');
     if (appCard) {
@@ -615,15 +610,12 @@
     });
 
     try {
-      await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}&_nc=${Date.now()}`, { 
-        method: 'GET',
-        keepalive: true
-      });
+      await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}&_nc=${Date.now()}`);
     } catch (err) {
       console.log("Clear request error:", err);
     }
 
-    setTimeout(() => { window.close(); }, 2000);
+    setTimeout(() => { window.close(); }, 1500);
   }
 </script>
 </body>
