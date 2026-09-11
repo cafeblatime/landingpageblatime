@@ -1,3 +1,7 @@
+<!-- ========================================== -->
+<!-- CLIENT DASHBOARD (landingpageblatime.html) -->
+<!-- ========================================== -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -147,6 +151,18 @@
       border: 2px solid var(--accent-red); 
     }
 
+    .reminder-tagline {
+      margin-top: 10px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      background: #F1F5F9;
+      border-radius: 10px;
+      border: 1px dashed #CBD5E1;
+      text-align: center;
+    }
+
     .audio-panel {
       margin-top: 20px;
       background: #FFFFFF;
@@ -219,6 +235,7 @@
     <a id="menuBtn" class="btn-action btn-menu" href="#">Go to Menu ☕</a>
     
     <button id="reminderBtn" class="btn-action btn-reminder" onclick="callReminder()">Call 7-Min Reminder ⏰</button>
+    <div id="reminderTagline" class="reminder-tagline" style="display: none;">7 minutes reminder was sent</div>
     
     <button id="sessionBtn" class="btn-action btn-end" onclick="handleSessionButtonClick()">End Session</button>
 
@@ -234,14 +251,6 @@
     </div>
   </div>
 
-  <div id="reminderModal" class="modal">
-    <div class="modal-content">
-      <h3 style="color:var(--accent-orange); margin-top:0;">Reminder Requested</h3>
-      <p style="color:var(--text-muted); font-size:0.9rem;">Your 7-minute reminder has been sent to the team. Staff has been notified!</p>
-      <button class="btn-action btn-menu" style="margin-top:15px;" onclick="closeReminderModal()">OK</button>
-    </div>
-  </div>
-
   <div id="confirmModal" class="modal">
     <div class="modal-content">
       <h3 style="margin-top:0;">End Focus Session?</h3>
@@ -250,14 +259,6 @@
         <button class="btn-action btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
         <button class="btn-action btn-modal-confirm" onclick="executeEndSession()">Approve</button>
       </div>
-    </div>
-  </div>
-
-  <div id="thankYouModal" class="modal">
-    <div class="modal-content">
-      <h2 style="color:var(--accent-green); margin-top:0;">Thank You!</h2>
-      <p style="color:var(--text-muted);">Your session has ended. We hope you had a productive time!</p>
-      <button class="btn-action btn-menu" onclick="closeThankYouModal()">Close</button>
     </div>
   </div>
 
@@ -349,20 +350,21 @@
     } catch (e) { console.warn("Audio error:", e); }
   }
 
-  async function callReminder() {
+  function callReminder() {
     playReminderChime();
-    try {
-      await fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`);
-      document.getElementById("reminderModal").style.display = "flex";
-    } catch (e) {
-      console.warn("Reminder logging error:", e);
-      document.getElementById("reminderModal").style.display = "flex";
-    }
+    localStorage.setItem(`reminder_sent_${rawTable}`, "true");
+    checkReminderState();
   }
 
-  function closeReminderModal() {
-    document.getElementById("reminderModal").style.display = "none";
-    document.getElementById("reminderBtn").style.display = "none";
+  function checkReminderState() {
+    const isSent = localStorage.getItem(`reminder_sent_${rawTable}`);
+    if (isSent === "true") {
+      document.getElementById("reminderBtn").style.display = "none";
+      document.getElementById("reminderTagline").style.display = "block";
+    } else {
+      document.getElementById("reminderBtn").style.display = "block";
+      document.getElementById("reminderTagline").style.display = "none";
+    }
   }
 
   function initializeTimerState() {
@@ -375,29 +377,7 @@
       targetEndTimestampMs = Date.now() + (47 * 60 * 1000);
       localStorage.setItem(storageKey, targetEndTimestampMs);
     }
-  }
-
-  async function fetchServerTimerSync() {
-    try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=client&table=${rawTable}&client=${clientToken}`);
-      const data = await res.json();
-
-      if (data.status === "success" && data.table) {
-        // Only respect explicit clearance from server if session wasn't already locally running
-        if (data.table.status === "Cleared") {
-          renderExpiredUI();
-          return;
-        }
-        if (data.table.endTime) {
-          const serverEndMs = new Date(data.table.endTime).getTime();
-          // Only overwrite local timer if server time is substantially different or valid
-          if (!isNaN(serverEndMs) && Math.abs(serverEndMs - targetEndTimestampMs) > 10000) {
-            targetEndTimestampMs = serverEndMs;
-            localStorage.setItem(`focus_target_end_table_${rawTable}`, targetEndTimestampMs);
-          }
-        }
-      }
-    } catch (e) { console.warn("Sync error:", e); }
+    checkReminderState();
   }
 
   function updateDisplay() {
@@ -446,6 +426,7 @@
     }
     isSessionExpired = true;
     localStorage.removeItem(`focus_target_end_table_${rawTable}`);
+    localStorage.removeItem(`reminder_sent_${rawTable}`);
 
     document.getElementById("bufferTimer").innerText = "00:00";
     document.getElementById("focusTimer").innerText = "00:00";
@@ -481,19 +462,26 @@
     } catch (e) {
       console.warn("End session sync error:", e);
     }
-    renderExpiredUI();
-    document.getElementById("thankYouModal").style.display = "flex";
+    localStorage.removeItem(`focus_target_end_table_${rawTable}`);
+    localStorage.removeItem(`reminder_sent_${rawTable}`);
+    
+    // Redirect immediately to a clean, empty state page / reload with cleared context
+    window.location.href = window.location.pathname + `?table=${rawTable}&client_token=${clientToken}&ended=true`;
   }
 
-  function closeThankYouModal() { 
-    document.getElementById("thankYouModal").style.display = "none";
-    window.location.href = menuUrl; 
+  // Check if session was just explicitly terminated/cleared
+  if (urlParams.get("ended") === "true") {
+    document.body.innerHTML = `
+      <div style="background:#FAF9F6; color:#1800ad; padding:30px; border-radius:20px; max-width:380px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3); margin:auto;">
+        <h2 style="color:#2E7D32; margin-top:0;">Session Ended</h2>
+        <p style="color:#64748B;">This table session has been safely closed. Thank you for your time!</p>
+        <a href="${menuUrl}" style="background:#1800ad; color:#FFFFFF; padding:14px 16px; border-radius:10px; font-weight:bold; display:block; margin-top:20px; text-decoration:none;">Start New Session</a>
+      </div>
+    `;
+  } else {
+    initializeTimerState();
+    setInterval(updateDisplay, 1000);
   }
-
-  initializeTimerState();
-  fetchServerTimerSync();
-  setInterval(fetchServerTimerSync, 5000);
-  setInterval(updateDisplay, 1000);
 </script>
 </body>
 </html>
