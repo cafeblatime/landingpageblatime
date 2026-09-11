@@ -612,6 +612,22 @@
         }
       }, 1000);
 
+      // Added background sync interval to eliminate lag and keep state updated with server
+      setInterval(() => {
+        fetch(`${SCRIPT_URL}?action=client`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+              const tableData = data.tables[rawTable];
+              // If the staff dashboard cleared or changed the session state, handle accordingly
+              if (tableData.status === 'available' || (tableData.startTime && tableData.startTime !== startTime)) {
+                // Optional state re-alignment can happen here if required
+              }
+            }
+          })
+          .catch(err => console.error("Sync error:", err));
+      }, 15000);
+
     } catch (err) {
       console.error("Initialization Error:", err);
     }
