@@ -131,6 +131,7 @@
     .btn-menu { background: var(--accent-green); color: #FFFFFF; }
     .btn-end { background: var(--accent-red); color: #FFFFFF; }
     .btn-renew { background: #2563EB; color: #FFFFFF; }
+    .btn-reminder { background: #D97706; color: #FFFFFF; }
 
     .audio-panel {
       margin-top: 20px;
@@ -201,6 +202,10 @@
 
     <!-- Navigation & Session Buttons -->
     <a id="menuBtn" class="btn-action btn-menu" href="#">Go to Menu ☕</a>
+    
+    <!-- 7-Minute Reminder Call Button -->
+    <button class="btn-action btn-reminder" onclick="callReminder()">Call 7-Min Reminder ⏰</button>
+    
     <button id="sessionBtn" class="btn-action btn-end" onclick="handleSessionButtonClick()">End Session</button>
 
     <!-- Audio Settings Panel -->
@@ -211,7 +216,7 @@
       </label>
       <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:8px;" oninput="updateVolume(this.value)">
       <button class="btn-action" style="margin-top:10px; padding:8px; background:#E2E8F0; color:#1800ad;" onclick="playChimeSound()">
-        Test 7-Min Reminder 🔔
+        Test Audio Chime 🔔
       </button>
     </div>
   </div>
@@ -282,6 +287,17 @@
     } catch (e) { console.warn("Audio error:", e); }
   }
 
+  // Trigger call to log reminder to backlog sheet
+  async function callReminder() {
+    playChimeSound();
+    try {
+      fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`, { mode: 'no-cors' });
+      alert("7-minute reminder requested! Staff has been notified.");
+    } catch (e) {
+      console.warn("Reminder logging error:", e);
+    }
+  }
+
   function initializeTimerState() {
     const storageKey = `focus_target_end_table_${rawTable}`;
     const savedEnd = localStorage.getItem(storageKey);
@@ -324,7 +340,6 @@
       return;
     }
 
-    // Sound chime trigger at 7 minutes remaining (420 seconds)
     if (totalSecRemaining <= 420 && !hasPlayed7MinWarning) {
       hasPlayed7MinWarning = true;
       playChimeSound();
@@ -333,7 +348,6 @@
     const bufferSecLeft = Math.max(0, totalSecRemaining - 2700);
     const focusSecLeft = Math.min(2700, totalSecRemaining);
 
-    // Render values
     const bMins = Math.floor(bufferSecLeft / 60);
     const bSecs = bufferSecLeft % 60;
     document.getElementById("bufferTimer").innerText = `${bMins.toString().padStart(2,'0')}:${bSecs.toString().padStart(2,'0')}`;
@@ -342,7 +356,6 @@
     const fSecs = focusSecLeft % 60;
     document.getElementById("focusTimer").innerText = `${fMins.toString().padStart(2,'0')}:${fSecs.toString().padStart(2,'0')}`;
 
-    // Tint logic update
     const container = document.getElementById("timerContainer");
     const bufferBox = document.getElementById("bufferBox");
     const focusBox = document.getElementById("focusBox");
@@ -350,11 +363,9 @@
     container.classList.remove("expired-mode");
 
     if (totalSecRemaining > 2700) {
-      // Buffer phase active
       bufferBox.className = "timer-box tint-buffer-active";
       focusBox.className = "timer-box tint-muted";
     } else {
-      // Focus phase active
       bufferBox.className = "timer-box tint-muted";
       focusBox.className = "timer-box tint-focus-active";
     }
@@ -375,7 +386,6 @@
     bufferBox.className = "timer-box";
     focusBox.className = "timer-box";
 
-    // Switch action button to renewal mode
     const btn = document.getElementById("sessionBtn");
     btn.innerText = "Renew Session 🔄";
     btn.className = "btn-action btn-renew";
