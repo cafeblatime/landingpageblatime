@@ -1,3 +1,7 @@
+<!-- ========================================== -->
+<!-- 2. CLIENT DASHBOARD (landingpageblatime.html) -->
+<!-- ========================================== -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -124,13 +128,29 @@
       text-decoration: none;
       display: block;
       box-sizing: border-box;
-      transition: opacity 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
     }
-    .btn-action:active { opacity: 0.85; }
-    .btn-menu { background: var(--accent-green); color: #FFFFFF; }
-    .btn-end { background: var(--accent-red); color: #FFFFFF; }
+    .btn-action:hover {
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+    .btn-action:active { 
+      transform: translateY(1px);
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+      opacity: 0.85; 
+    }
+    
+    .btn-menu { background: var(--bg-color); color: #FFFFFF; }
+    .btn-reminder { background: var(--bg-color); color: #FFFFFF; }
     .btn-renew { background: #2563EB; color: #FFFFFF; }
-    .btn-reminder { background: #D97706; color: #FFFFFF; }
+    
+    /* Outlined/Soft style for End Session */
+    .btn-end { 
+      background: transparent; 
+      color: var(--accent-red); 
+      border: 2px solid var(--accent-red); 
+    }
 
     .audio-panel {
       margin-top: 20px;
@@ -146,6 +166,10 @@
       justify-content: space-between;
       font-weight: bold;
       color: var(--text-main);
+    }
+    
+    input[type=range] {
+      accent-color: var(--bg-color);
     }
 
     .modal {
@@ -210,7 +234,7 @@
       </label>
       <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:8px;" oninput="updateVolume(this.value)">
       <button class="btn-action" style="margin-top:10px; padding:8px; background:#E2E8F0; color:#1800ad;" onclick="playReminderChime()">
-        Test Chime 🔔
+        Test 7-Min Chime 🔔
       </button>
     </div>
   </div>
@@ -286,7 +310,6 @@
     alertVolume = val / 100;
   }
 
-  // Calm, short 2-tone chime for 7-minute reminder
   function playReminderChime() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -309,7 +332,6 @@
     } catch (e) { console.warn("Audio error:", e); }
   }
 
-  // Calm, longer peaceful multi-note chime for session end / expiration
   function playEndSessionChime() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -335,10 +357,11 @@
   async function callReminder() {
     playReminderChime();
     try {
-      fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`, { mode: 'no-cors' });
+      await fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`);
       document.getElementById("reminderModal").style.display = "flex";
     } catch (e) {
       console.warn("Reminder logging error:", e);
+      document.getElementById("reminderModal").style.display = "flex";
     }
   }
 
@@ -457,17 +480,22 @@
   async function executeEndSession() {
     closeConfirmModal();
     try {
-      fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}&client=${clientToken}`, { mode: 'no-cors' });
-    } catch (e) {}
+      await fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}&client=${clientToken}`);
+    } catch (e) {
+      console.warn("End session sync error:", e);
+    }
     renderExpiredUI();
     document.getElementById("thankYouModal").style.display = "flex";
   }
 
-  function closeThankYouModal() { document.getElementById("thankYouModal").style.display = "none"; }
+  function closeThankYouModal() { 
+    document.getElementById("thankYouModal").style.display = "none";
+    window.location.href = menuUrl; 
+  }
 
   initializeTimerState();
   fetchServerTimerSync();
-  setInterval(fetchServerTimerSync, 10000);
+  setInterval(fetchServerTimerSync, 5000); // Increased polling frequency to address latency
   setInterval(updateDisplay, 1000);
 </script>
 </body>
