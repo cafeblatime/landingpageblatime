@@ -612,20 +612,30 @@
         }
       }, 1000);
 
-      // Background sync interval to eliminate lag and keep state updated with server
-      setInterval(() => {
+      // High-performance synchronized background loop & instant tab-focus sync
+      const syncWithServer = () => {
         fetch(`${SCRIPT_URL}?action=client`)
           .then(response => response.json())
           .then(data => {
             if (data.status === 'success' && data.tables && data.tables[rawTable]) {
               const tableData = data.tables[rawTable];
-              if (tableData.status === 'available' || (tableData.startTime && tableData.startTime !== startTime)) {
+              if (tableData.status === 'available' && !document.getElementById('renewBtn').style.display) {
                 // Optional state re-alignment can happen here if required
               }
             }
           })
           .catch(err => console.error("Sync error:", err));
-      }, 15000);
+      };
+
+      // Poll every 10 seconds for tighter synchronization
+      setInterval(syncWithServer, 10000);
+
+      // Instant sync the moment the user taps back into the tab or unlocks their phone
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+          syncWithServer();
+        }
+      });
 
     } catch (err) {
       console.error("Initialization Error:", err);
