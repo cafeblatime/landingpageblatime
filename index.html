@@ -232,6 +232,7 @@
       font-size: 0.85rem; 
       color: var(--text-muted); 
       margin-top: 14px; 
+      display: none;
     }
 
     .status.alert-active {
@@ -353,7 +354,7 @@
     </div>
 
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">Enable Expiry Alert</button>
-    <div id="statusText" class="status">No personal data required.</div>
+    <div id="statusText" class="status"></div>
 
     <div class="audio-settings" id="audioSettingsPanel">
       <label>
@@ -654,6 +655,7 @@
       requestWakeLock();
 
       if (!('Notification' in window)) {
+        status.style.display = 'block';
         status.innerText = "Push alerts not supported. Keep tab open for chime.";
         return;
       }
@@ -692,9 +694,11 @@
 
           document.getElementById('audioSettingsPanel').style.display = 'block';
         } else {
+          status.style.display = 'block';
           status.innerText = "Permission denied. Keep tab open to track clock.";
         }
       } catch (err) {
+        status.style.display = 'block';
         status.innerText = "Could not enable alerts. Keep tab open for chime.";
       }
     }
