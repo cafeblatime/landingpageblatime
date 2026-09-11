@@ -36,6 +36,7 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
       position: relative;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .badge { 
@@ -63,6 +64,9 @@
       display: flex;
       gap: 10px;
       margin-bottom: 14px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+      border-radius: 12px;
+      padding: 2px;
     }
 
     .timer-section { 
@@ -71,6 +75,7 @@
       border-radius: 12px; 
       padding: 12px 8px; 
       border: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 
     .timer-label { 
@@ -80,22 +85,82 @@
       color: var(--text-muted); 
       margin-bottom: 4px; 
       font-weight: 600;
+      transition: color 0.3s ease;
     }
 
     .main-timer { 
       font-size: 2.1rem; 
       font-weight: 700; 
       color: var(--royal-blue); 
+      transition: color 0.3s ease;
     }
 
     .buffer-timer { 
       font-size: 2.1rem; 
       font-weight: 700; 
       color: var(--royal-blue); 
+      transition: color 0.3s ease;
     }
 
     .warning { color: var(--accent-orange) !important; }
     .expired { color: var(--accent-red) !important; }
+
+    /* Dynamic State Classes for Side-by-Side Timers */
+    .card.tint-expired-mode {
+      background: #FFEBEE;
+      border-color: #FFCDD2;
+    }
+
+    /* Buffer Active State (> 45 min remaining / totalSecRemaining > 2700) */
+    .timer-section.tint-buffer-active-box {
+      background: #FFF3E0;
+      border-color: #FFE0B2;
+    }
+    .timer-section.tint-buffer-active-box .buffer-timer {
+      color: #E65100 !important;
+    }
+    .timer-section.tint-buffer-active-box .timer-label {
+      color: #B26A00 !important;
+    }
+
+    /* Focus Session Active State (<= 45 min remaining / totalSecRemaining <= 2700) */
+    .timer-section.tint-focus-active-box {
+      background: #E8F5E9;
+      border-color: #C8E6C9;
+    }
+    .timer-section.tint-focus-active-box .main-timer {
+      color: #2E7D32 !important;
+    }
+    .timer-section.tint-focus-active-box .timer-label {
+      color: #1B5E20 !important;
+    }
+
+    /* Muted Gray Tone for Inactive Timer */
+    .timer-section.tint-muted {
+      background: #F1F3F5;
+      border-color: #E2E8F0;
+    }
+    .timer-section.tint-muted .buffer-timer,
+    .timer-section.tint-muted .main-timer {
+      color: #94A3B8 !important;
+    }
+    .timer-section.tint-muted .timer-label {
+      color: #94A3B8 !important;
+    }
+
+    /* Expired Mode Styles for Individual Boxes */
+    .timers-container.expired-mode .timer-section {
+      background: #FFEBEE !important;
+      border-color: #FFCDD2 !important;
+    }
+    .timers-container.expired-mode .buffer-timer,
+    .timers-container.expired-mode .main-timer {
+      color: #757575 !important;
+      background: transparent !important;
+    }
+    .timers-container.expired-mode .timer-label {
+      color: #757575 !important;
+    }
 
     .btn { 
       background: var(--royal-blue); 
@@ -236,7 +301,7 @@
 
     <h1 id="tableTitle">TABLE 1</h1>
 
-    <div class="timers-container">
+    <div id="timersContainer" class="timers-container">
       <div id="bufferSection" class="timer-section">
         <div class="timer-label">Buffer</div>
         <div id="bufferTimer" class="buffer-timer">02:00</div>
@@ -381,10 +446,22 @@
       if (bufferSection) bufferSection.style.display = 'none';
       if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
+      // Apply Expired Mode styling states
+      const appCard = document.getElementById('appCard');
+      const timersContainer = document.getElementById('timersContainer');
+      if (appCard) appCard.classList.add('tint-expired-mode');
+      if (timersContainer) timersContainer.classList.add('expired-mode');
+
       const mainTimerEl = document.getElementById('mainTimer');
-      mainTimerEl.innerText = "00:00";
-      mainTimerEl.classList.remove('warning');
-      mainTimerEl.classList.add('expired');
+      const bufferTimerEl = document.getElementById('bufferTimer');
+      if (mainTimerEl) {
+        mainTimerEl.innerText = "00:00";
+        mainTimerEl.classList.remove('warning');
+        mainTimerEl.classList.add('expired');
+      }
+      if (bufferTimerEl) {
+        bufferTimerEl.innerText = "00:00";
+      }
 
       document.getElementById('renewBtn').style.display = "block";
       document.getElementById('leaveBtn').style.display = "block";
@@ -455,11 +532,14 @@
 
       const bufferTimerEl = document.getElementById('bufferTimer');
       const mainTimerEl = document.getElementById('mainTimer');
+      const bufferSection = document.getElementById('bufferSection');
+      const mainTimerSection = document.getElementById('mainTimerSection');
       let alertPlayed = false;
       let expiredPlayed = false;
 
       timerInterval = setInterval(() => {
         const elapsedMs = Date.now() - startTime;
+        const totalSecRemaining = Math.max(0, Math.floor((TOTAL_DURATION_MS - elapsedMs) / 1000));
 
         if (elapsedMs < BUFFER_DURATION_MS) {
           let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
@@ -468,8 +548,13 @@
           let bSecs = bufferSecs % 60;
 
           bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
-          bufferTimerEl.classList.add('warning');
           mainTimerEl.innerText = "45:00";
+
+          // Apply Buffer Active state (> 45 min remaining in total / totalSecRemaining > 2700)
+          if (totalSecRemaining > 2700) {
+            bufferSection.className = 'timer-section tint-buffer-active-box';
+            mainTimerSection.className = 'timer-section tint-muted';
+          }
         } 
         else if (elapsedMs < TOTAL_DURATION_MS) {
           bufferTimerEl.innerText = "00:00";
@@ -482,6 +567,12 @@
           let mSecs = mainSecs % 60;
 
           mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+
+          // Apply Focus Session Active state (<= 45 min remaining / totalSecRemaining <= 2700)
+          if (totalSecRemaining <= 2700) {
+            mainTimerSection.className = 'timer-section tint-focus-active-box';
+            bufferSection.className = 'timer-section tint-muted';
+          }
 
           if (mainSecs <= 420) {
             const notifyBtn = document.getElementById('notifyBtn');
