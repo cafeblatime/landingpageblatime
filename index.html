@@ -131,7 +131,6 @@
     .warning { color: var(--accent-orange) !important; }
     .expired { color: var(--accent-red) !important; }
 
-    /* Dynamic State Classes for Side-by-Side Timers */
     .card.tint-expired-mode {
       background: #FFEBEE;
       border-color: #FFCDD2;
@@ -235,12 +234,6 @@
       display: none;
     }
 
-    .status.alert-active {
-      color: var(--accent-green);
-      font-weight: 600;
-    }
-
-    /* Custom Popup Modal Styles */
     .custom-modal-overlay {
       position: fixed;
       top: 0;
@@ -314,7 +307,6 @@
 
     <div class="header-bar">
       <h1 id="tableTitle">TABLE 1</h1>
-      <!-- Menu button with coffee emoji -->
       <a href="https://your-menu-ordering-url.com" class="menu-btn" title="Menu">☕ Menu</a>
     </div>
 
@@ -336,7 +328,6 @@
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
     
-    <!-- Volume Slider & Test Sound Button at the Bottom -->
     <div style="background: #FFFFFF; padding: 12px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border-color);">
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
         <span>Alert Volume</span>
@@ -699,7 +690,6 @@
 
       if (timerInterval) clearInterval(timerInterval);
 
-      // Mark session permanently ended to prevent refreshing back into the timer
       localStorage.setItem('session_ended_' + tableNum + '_' + sessionId, 'true');
       localStorage.removeItem('session_start_table_' + tableNum + '_' + sessionId);
       localStorage.setItem('force_clear_table_' + tableNum, Date.now());
@@ -714,16 +704,11 @@
       localStorage.removeItem('sessionExpiry');
       localStorage.removeItem('renewal_count_' + rawTable);
 
+      // Bulletproof GET request implementation that guarantees it hits doGet(e) instantly
       try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: "clear",
-            table: tableNum,
-            client: localUserId
-          })
+        fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`, {
+          method: 'GET',
+          mode: 'no-cors'
         });
       } catch (err) {
         console.log("Background ping sent to LiveDash", err);
