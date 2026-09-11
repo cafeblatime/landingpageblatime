@@ -695,6 +695,7 @@
       var tableNum = localStorage.getItem('activeTable') || rawTable;
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+      let localUserId = localStorage.getItem('focus_user_id') || '';
 
       if (timerInterval) clearInterval(timerInterval);
 
@@ -714,14 +715,9 @@
       localStorage.removeItem('renewal_count_' + rawTable);
 
       try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: "clear",
-            table: tableNum
-          })
+        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`, {
+          method: 'GET',
+          mode: 'no-cors'
         });
       } catch (err) {
         console.log("Background ping sent to LiveDash", err);
