@@ -336,9 +336,14 @@
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
     
-    <!-- Test Sound Button grouped cleanly at the bottom -->
-    <div style="background: #E2E8F0; padding: 12px; border-radius: 12px; margin-top: 12px;">
-      <button class="btn" style="background: #FFFFFF; color: var(--text-main); margin-top: 0; font-size: 0.85rem; border: 1px solid var(--border-color);" onclick="playChime('7min')">Test Sound 🔊</button>
+    <!-- Volume Slider & Test Sound Button at the Bottom -->
+    <div style="background: #FFFFFF; padding: 12px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border-color);">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+        <span>Alert Volume</span>
+        <span id="volVal">35</span>
+      </div>
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)" style="width: 100%; margin-bottom: 10px; accent-color: var(--royal-blue);">
+      <button class="btn" style="background: #E2E8F0; color: var(--text-main); margin-top: 0; font-size: 0.85rem; border: none;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
   </div>
 
@@ -366,6 +371,13 @@
     let wakeLock = null;
     let timerInterval = null;
     let alertVolume = 0.35;
+
+    function updateVolume(val) {
+      document.getElementById('volVal').innerText = val;
+      const slider = document.getElementById('volumeSlider');
+      if(slider) slider.value = val;
+      alertVolume = val / 100;
+    }
 
     function showCustomModal(message) {
       document.getElementById('customModalText').innerText = message;
@@ -478,6 +490,16 @@
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
 
       const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+
+      const endedKey = 'session_ended_' + rawTable + '_' + sessionId;
+      if (localStorage.getItem(endedKey) === 'true') {
+        document.getElementById('appCard').innerHTML = `
+          <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
+          <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
+        `;
+        throw new Error("Session already ended");
+      }
 
       document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
 
@@ -671,9 +693,14 @@
       closeConfirmModal();
 
       var tableNum = localStorage.getItem('activeTable') || rawTable;
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
       if (timerInterval) clearInterval(timerInterval);
 
+      // Mark session permanently ended to prevent refreshing back into the timer
+      localStorage.setItem('session_ended_' + tableNum + '_' + sessionId, 'true');
+      localStorage.removeItem('session_start_table_' + tableNum + '_' + sessionId);
       localStorage.setItem('force_clear_table_' + tableNum, Date.now());
 
       document.getElementById('appCard').innerHTML = `
@@ -687,9 +714,14 @@
       localStorage.removeItem('renewal_count_' + rawTable);
 
       try {
-        await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, {
-          method: 'GET',
-          mode: 'no-cors'
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "clear",
+            table: tableNum
+          })
         });
       } catch (err) {
         console.log("Background ping sent to LiveDash", err);
