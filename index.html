@@ -135,7 +135,6 @@
       font-weight: 600;
     }
 
-    /* Custom Popup Modal Styles */
     .custom-modal-overlay {
       position: fixed;
       top: 0;
@@ -257,7 +256,6 @@
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
   </div>
 
-  <!-- CUSTOM ALERT MODAL -->
   <div id="customModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
@@ -265,7 +263,6 @@
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRMATION MODAL -->
   <div id="confirmModalOverlay" class="custom-modal-overlay">
     <div class="custom-modal">
       <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
@@ -401,32 +398,42 @@
     if (leaveBtn) leaveBtn.style.display = "block";
   }
 
- function parseEndTimeToMs(rawEnd) {
-  if (!rawEnd) return null;
-  const now = new Date();
-  const timeStr = String(rawEnd).trim();
-  const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-  if (!timeParts) return null;
+  function parseEndTimeToMs(rawEnd) {
+    if (!rawEnd) return null;
 
-  let hours = parseInt(timeParts[1], 10);
-  let minutes = parseInt(timeParts[2], 10);
-  let seconds = timeParts[3] ? parseInt(timeParts[3], 10) : 0;
-  let ampm = timeParts[4];
+    if (!isNaN(rawEnd) && Number(rawEnd) > 100000000000) {
+      return Number(rawEnd);
+    }
 
-  if (ampm) {
-    if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
-    if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
+    let parsedDate = new Date(rawEnd);
+    if (!isNaN(parsedDate.getTime()) && String(rawEnd).includes("T")) {
+      return parsedDate.getTime();
+    }
+
+    const now = new Date();
+    const timeStr = String(rawEnd).trim();
+    const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+    if (!timeParts) return null;
+
+    let hours = parseInt(timeParts[1], 10);
+    let minutes = parseInt(timeParts[2], 10);
+    let seconds = timeParts[3] ? parseInt(timeParts[3], 10) : 0;
+    let ampm = timeParts[4];
+
+    if (ampm) {
+      if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
+      if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
+    }
+
+    let endDate = new Date(now);
+    endDate.setHours(hours, minutes, seconds, 0);
+
+    if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    return endDate.getTime();
   }
-
-  let endDate = new Date(now);
-  endDate.setHours(hours, minutes, seconds, 0);
-
-  if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
-    endDate.setDate(endDate.getDate() + 1);
-  }
-
-  return endDate.getTime();
-}
 
   async function fetchServerTimerSync() {
     try {
@@ -444,24 +451,6 @@
     } catch (err) {
       console.error("Sync error:", err);
     }
-  }
-
-  async function checkAndRestoreActiveSession(urlTableParam) {
-    try {
-      const response = await fetch(`${SCRIPT_URL}?action=client&client=${localUserId}&_nc=${Date.now()}`);
-      const data = await response.json();
-
-      if (data.status === 'success' && data.activeSession && data.activeSession.table) {
-        const activeTable = String(data.activeSession.table);
-        if (!urlTableParam || urlTableParam !== activeTable) {
-          window.location.href = `${window.location.pathname}?table=${activeTable}`;
-          return true;
-        }
-      }
-    } catch (err) {
-      console.error("Session restoration error:", err);
-    }
-    return false;
   }
 
   function updateDisplay() {
@@ -519,15 +508,6 @@
     try {
       const urlParams = new URLSearchParams(window.location.search);
       let urlTable = urlParams.get('table') || urlParams.get('Table');
-      
-      const storedActiveTable = localStorage.getItem('activeTable');
-      if (urlTable && storedActiveTable && urlTable.replace(/[^0-9]/g, '') !== storedActiveTable) {
-        localUserId = 'USR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        localStorage.setItem('focus_user_id', localUserId);
-      }
-
-      const isRedirecting = await checkAndRestoreActiveSession(urlTable);
-      if (isRedirecting) return;
 
       rawTable = urlTable || localStorage.getItem('activeTable') || '1';
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
@@ -552,9 +532,7 @@
       }
 
       await fetchServerTimerSync();
-      
       setInterval(fetchServerTimerSync, 10000);
-
       setInterval(updateDisplay, 1000);
 
     } catch (err) {
@@ -638,14 +616,14 @@
 
     try {
       await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}&_nc=${Date.now()}`, { 
-        method: 'GET', 
-        mode: 'no-cors' 
+        method: 'GET',
+        keepalive: true
       });
     } catch (err) {
-      console.log("Background ping sent to LiveDash", err);
+      console.log("Clear request error:", err);
     }
 
-    setTimeout(() => { window.close(); }, 2500);
+    setTimeout(() => { window.close(); }, 2000);
   }
 </script>
 </body>
