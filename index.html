@@ -305,29 +305,6 @@
       background: #E2E8F0;
       color: var(--text-muted);
     }
-
-    .audio-settings {
-      display: none;
-      margin-top: 15px;
-      background: #FFFFFF;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      font-size: 0.85rem;
-      text-align: left;
-    }
-    .audio-settings label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: bold;
-      color: var(--text-main);
-    }
-    .audio-settings input[type="range"] {
-      width: 100%;
-      margin-top: 5px;
-      accent-color: var(--royal-blue);
-    }
   </style>
 </head>
 <body>
@@ -356,20 +333,11 @@
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">Enable Expiry Alert</button>
     <div id="statusText" class="status"></div>
 
-    <div class="audio-settings" id="audioSettingsPanel">
-      <label>
-        <span>Alert Volume</span>
-        <span id="volVal">35</span>
-      </label>
-      <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)">
-    </div>
-
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
     
-    <!-- Test Sound Button grouped with the volume slider frame inside the same container level structure -->
-    <div style="background: #E2E8F0; padding: 12px; border-radius: 12px; margin-top: 8px;">
-      <input type="range" id="volumeSliderSecondary" min="0" max="100" value="35" oninput="updateVolume(this.value)" style="width: 100%; margin-bottom: 8px; accent-color: var(--royal-blue);">
+    <!-- Test Sound Button grouped cleanly at the bottom -->
+    <div style="background: #E2E8F0; padding: 12px; border-radius: 12px; margin-top: 12px;">
       <button class="btn" style="background: #FFFFFF; color: var(--text-main); margin-top: 0; font-size: 0.85rem; border: 1px solid var(--border-color);" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
   </div>
@@ -398,13 +366,6 @@
     let wakeLock = null;
     let timerInterval = null;
     let alertVolume = 0.35;
-
-    function updateVolume(val) {
-      document.getElementById('volVal').innerText = val;
-      if(document.getElementById('volumeSlider')) document.getElementById('volumeSlider').value = val;
-      if(document.getElementById('volumeSliderSecondary')) document.getElementById('volumeSliderSecondary').value = val;
-      alertVolume = val / 100;
-    }
 
     function showCustomModal(message) {
       document.getElementById('customModalText').innerText = message;
@@ -486,12 +447,10 @@
       const notifyBtn = document.getElementById('notifyBtn');
       const statusText = document.getElementById('statusText');
       const bufferSection = document.getElementById('bufferSection');
-      const audioSettingsPanel = document.getElementById('audioSettingsPanel');
 
       if (notifyBtn) notifyBtn.style.display = 'none';
       if (statusText) statusText.style.display = 'none';
       if (bufferSection) bufferSection.style.display = 'none';
-      if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
       const appCard = document.getElementById('appCard');
       const timersContainer = document.getElementById('timersContainer');
@@ -575,7 +534,6 @@
         if (status) {
           status.style.display = 'none';
         }
-        document.getElementById('audioSettingsPanel').style.display = 'block';
       }
 
       const bufferTimerEl = document.getElementById('bufferTimer');
@@ -621,9 +579,6 @@
           }
 
           if (mainSecs <= 420) {
-            const audioSettingsPanel = document.getElementById('audioSettingsPanel');
-            if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
-
             if (!alertPlayed) {
               mainTimerEl.classList.add('warning');
               playChime('7min');
@@ -691,8 +646,6 @@
           if (status) {
             status.style.display = 'none';
           }
-
-          document.getElementById('audioSettingsPanel').style.display = 'block';
         } else {
           status.style.display = 'block';
           status.innerText = "Permission denied. Keep tab open to track clock.";
