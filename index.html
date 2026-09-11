@@ -401,38 +401,32 @@
     if (leaveBtn) leaveBtn.style.display = "block";
   }
 
-  function parseEndTimeToMs(rawEnd) {
-    if (!rawEnd) return null;
-    const now = new Date();
+ function parseEndTimeToMs(rawEnd) {
+  if (!rawEnd) return null;
+  const now = new Date();
+  const timeStr = String(rawEnd).trim();
+  const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+  if (!timeParts) return null;
 
-    let endDate = new Date(rawEnd);
-    if (!isNaN(endDate.getTime()) && (String(rawEnd).includes('T') || String(rawEnd).includes('-') || String(rawEnd).includes('/'))) {
-      return endDate.getTime();
-    }
+  let hours = parseInt(timeParts[1], 10);
+  let minutes = parseInt(timeParts[2], 10);
+  let seconds = timeParts[3] ? parseInt(timeParts[3], 10) : 0;
+  let ampm = timeParts[4];
 
-    const timeStr = String(rawEnd).trim();
-    const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-    if (!timeParts) return null;
-
-    let hours = parseInt(timeParts[1], 10);
-    let minutes = parseInt(timeParts[2], 10);
-    let seconds = timeParts[3] ? parseInt(timeParts[3], 10) : 0;
-    let ampm = timeParts[4];
-
-    if (ampm) {
-      if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
-      if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
-    }
-
-    endDate = new Date(now);
-    endDate.setHours(hours, minutes, seconds, 0);
-
-    if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
-
-    return endDate.getTime();
+  if (ampm) {
+    if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
+    if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
   }
+
+  let endDate = new Date(now);
+  endDate.setHours(hours, minutes, seconds, 0);
+
+  if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  return endDate.getTime();
+}
 
   async function fetchServerTimerSync() {
     try {
