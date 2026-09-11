@@ -241,7 +241,7 @@
       <div id="mainTimer" class="main-timer">45:00</div>
     </div>
 
-    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
+    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">Enable 7-Min Expiry Alert</button>
     <div id="statusText" class="status">No personal data required.</div>
 
     <div class="audio-settings" id="audioSettingsPanel">
@@ -253,8 +253,9 @@
       <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
 
-    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
-    <button id="leaveBtn" class="btn btn-leave" style="display: none;" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
+    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
+    <!-- Replace your current leave button line with this: -->
+<button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
   </div>
 
   <!-- CUSTOM ALERT MODAL -->
