@@ -446,18 +446,13 @@
   }
 
   async function checkAndRestoreActiveSession(urlTableParam) {
-    // FIX: Ignore restoration if user explicitly scanned a URL containing a table parameter
-    if (urlTableParam) return false;
-
     try {
       const response = await fetch(`${SCRIPT_URL}?action=client&client=${localUserId}&_nc=${Date.now()}`);
       const data = await response.json();
 
       if (data.status === 'success' && data.activeSession && data.activeSession.table) {
         const activeTable = String(data.activeSession.table);
-        const currentUrlParams = new URLSearchParams(window.location.search);
-        
-        if (currentUrlParams.get('table') !== activeTable) {
+        if (!urlTableParam || urlTableParam !== activeTable) {
           window.location.href = `${window.location.pathname}?table=${activeTable}`;
           return true;
         }
@@ -473,7 +468,6 @@
       const urlParams = new URLSearchParams(window.location.search);
       let urlTable = urlParams.get('table') || urlParams.get('Table');
       
-      // FIX: Reset user token if a new table QR code is scanned
       const storedActiveTable = localStorage.getItem('activeTable');
       if (urlTable && storedActiveTable && urlTable.replace(/[^0-9]/g, '') !== storedActiveTable) {
         localUserId = 'USR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -489,20 +483,6 @@
 
       const tableTitleEl = document.getElementById('tableTitle');
       if (tableTitleEl) tableTitleEl.innerText = "TABLE " + rawTable;
-
-      const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
-      let startTime = localStorage.getItem(storageKey);
-
-      const BUFFER_DURATION_MS = 2 * 60 * 1000;
-      const MAIN_DURATION_MS = 45 * 60 * 1000;
-      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
-
-      if (!startTime) {
-        startTime = Date.now();
-        localStorage.setItem(storageKey, startTime);
-      } else {
-        startTime = parseInt(startTime, 10);
-      }
 
       localStorage.setItem('activeTable', rawTable);
 
@@ -524,7 +504,7 @@
       let alertPlayed = false;
       let expiredPlayed = false;
 
-      fetchServerTimerSync();
+      await fetchServerTimerSync();
       syncInterval = setInterval(fetchServerTimerSync, 5000);
 
       timerInterval = setInterval(() => {
@@ -534,8 +514,7 @@
           remainingTotalSecs = serverSecondsLeft;
           serverSecondsLeft--;
         } else {
-          const elapsedMs = Date.now() - startTime;
-          remainingTotalSecs = Math.max(0, Math.floor((TOTAL_DURATION_MS - elapsedMs) / 1000));
+          return;
         }
 
         const MAIN_SECS = 45 * 60;
@@ -562,7 +541,7 @@
           let mSecs = remainingTotalSecs % 60;
 
           if (mainTimerEl) {
-            mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+            mainTimerEl.innerText = `${mMins < 10 ? '0' : ''}${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
           }
 
           if (remainingTotalSecs <= 420 && !alertPlayed) {
@@ -660,8 +639,17 @@
     localStorage.removeItem('activeTable');
     localStorage.removeItem('renewal_count_' + rawTable);
 
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('session_start_table_') || key.startsWith('alerts_enabled_table_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     try {
-      await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}`, { method: 'GET', mode: 'no-cors' });
+      await fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}&_nc=${Date.now()}`, { 
+        method: 'GET', 
+        mode: 'no-cors' 
+      });
     } catch (err) {
       console.log("Background ping sent to LiveDash", err);
     }
