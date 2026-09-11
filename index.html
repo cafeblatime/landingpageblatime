@@ -1,267 +1,754 @@
-const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-
-function doPost(e) {
-  try {
-    const contents = JSON.parse(e.postData.contents);
-
-    // Handle direct clear action from frontend
-    if (contents.action === "clear") {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
-      const liveSheet = ss.getSheetByName("Live Dashboard");
-      const backlogSheet = ss.getSheetByName("Backlog");
-      const tableNum = contents.table;
-      const clientToken = contents.client || "";
-
-      const data = liveSheet.getDataRange().getValues();
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][0]) === String(tableNum)) {
-          // Explicitly writes "CLEARED" to the status column (Column B / index 2)
-          liveSheet.getRange(i + 1, 2).setValue("CLEARED");
-          // Clear out the remaining tracking cells (EndTime, Token, IsPaid)
-          liveSheet.getRange(i + 1, 3, 1, 3).setValues([["", "", false]]);
-          break;
-        }
-      }
-
-      if (backlogSheet) {
-        backlogSheet.appendRow([
-          new Date(),
-          "SESSION_ENDED",
-          tableNum,
-          "",
-          0,
-          "NO",
-          "CLEARED",
-          "",
-          clientToken
-        ]);
-      }
-
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Session</title>
+  <style>
+    :root {
+      --bg-color: #1800ad;
+      --card-bg: #FAF9F6;
+      --royal-blue: #1800ad;
+      --royal-blue-hover: #12008A;
+      --text-main: #1800ad;
+      --text-muted: #5A6B82;
+      --border-color: #E2E8F0;
+      --accent-red: #D32F2F;
+      --accent-orange: #E65100;
+      --accent-green: #2E7D32;
     }
 
-    const payload = contents.data;
-    
-    let tableNum = "";
-    let itemsArr = [];
-    let totalAmount = 0;
-    let focusPass = false;
-    let userToken = "";
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      background: var(--bg-color); 
+      color: var(--text-main); 
+      text-align: center; 
+      padding: 20px; 
+      margin: 0; 
+    }
 
-    if (payload && payload.fields) {
-      payload.fields.forEach(field => {
-        const label = (field.label || "").toLowerCase();
-        if (label.includes("table")) tableNum = String(field.value);
-        if (label.includes("token") || label.includes("user")) userToken = String(field.value);
-        if (field.type === "MULTIPLE_CHOICE" || field.type === "CHECKBOXES") {
-          if (field.value) {
-            const val = Array.isArray(field.value) ? field.value : [field.value];
-            itemsArr = itemsArr.concat(val);
+    .card { 
+      background: var(--card-bg); 
+      border-radius: 20px; 
+      padding: 28px 24px; 
+      max-width: 360px; 
+      margin: 30px auto; 
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+      position: relative;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .menu-btn {
+      position: absolute;
+      right: 0;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--royal-blue);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-btn:hover {
+      background: rgba(24, 0, 173, 0.05);
+    }
+
+    .badge { 
+      background: rgba(24, 0, 173, 0.08); 
+      color: var(--royal-blue); 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+      display: inline-block; 
+      margin-bottom: 20px; 
+      border: 1px solid rgba(24, 0, 173, 0.12);
+    }
+
+    h1 { 
+      font-size: 1.3rem; 
+      margin: 0; 
+      color: var(--royal-blue);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .timers-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+      border-radius: 12px;
+      padding: 2px;
+    }
+
+    .timer-section { 
+      flex: 1;
+      background: #FFFFFF; 
+      border-radius: 12px; 
+      padding: 12px 8px; 
+      border: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+
+    .timer-label { 
+      font-size: 0.7rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      color: var(--text-muted); 
+      margin-bottom: 4px; 
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+
+    .main-timer { 
+      font-size: 2.1rem; 
+      font-weight: 700; 
+      color: var(--royal-blue); 
+      transition: color 0.3s ease;
+    }
+
+    .buffer-timer { 
+      font-size: 2.1rem; 
+      font-weight: 700; 
+      color: var(--royal-blue); 
+      transition: color 0.3s ease;
+    }
+
+    .warning { color: var(--accent-orange) !important; }
+    .expired { color: var(--accent-red) !important; }
+
+    .card.tint-expired-mode {
+      background: #FFEBEE;
+      border-color: #FFCDD2;
+    }
+
+    .timer-section.tint-buffer-active-box {
+      background: #FFF3E0;
+      border-color: #FFE0B2;
+    }
+    .timer-section.tint-buffer-active-box .buffer-timer {
+      color: #E65100 !important;
+    }
+    .timer-section.tint-buffer-active-box .timer-label {
+      color: #B26A00 !important;
+    }
+
+    .timer-section.tint-focus-active-box {
+      background: #E8F5E9;
+      border-color: #C8E6C9;
+    }
+    .timer-section.tint-focus-active-box .main-timer {
+      color: #2E7D32 !important;
+    }
+    .timer-section.tint-focus-active-box .timer-label {
+      color: #1B5E20 !important;
+    }
+
+    .timer-section.tint-muted {
+      background: #F1F3F5;
+      border-color: #E2E8F0;
+    }
+    .timer-section.tint-muted .buffer-timer,
+    .timer-section.tint-muted .main-timer {
+      color: #94A3B8 !important;
+    }
+    .timer-section.tint-muted .timer-label {
+      color: #94A3B8 !important;
+    }
+
+    .timers-container.expired-mode .timer-section {
+      background: #FFEBEE !important;
+      border-color: #FFCDD2 !important;
+    }
+    .timers-container.expired-mode .buffer-timer,
+    .timers-container.expired-mode .main-timer {
+      color: #757575 !important;
+      background: transparent !important;
+    }
+    .timers-container.expired-mode .timer-label {
+      color: #757575 !important;
+    }
+
+    .btn { 
+      background: var(--royal-blue); 
+      color: #FFFFFF; 
+      border: none; 
+      padding: 12px 18px; 
+      font-size: 0.95rem; 
+      font-weight: 600; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      width: 100%; 
+      margin-top: 10px; 
+      transition: background 0.2s ease;
+    }
+
+    .btn:active {
+      background: var(--royal-blue-hover);
+    }
+
+    .btn:disabled {
+      background: #E2E8F0;
+      color: var(--text-muted);
+      cursor: not-allowed;
+      font-size: 0.8rem;
+    }
+
+    .btn-renew { 
+      background: var(--royal-blue); 
+      display: block; 
+      margin-top: 15px; 
+    }
+
+    .btn-leave { 
+      background: #FFFFFF; 
+      color: var(--accent-red); 
+      border: 2px solid var(--accent-red);
+      display: block; 
+      margin-top: 12px; 
+      box-shadow: 0 2px 6px rgba(211, 47, 47, 0.15);
+      transition: all 0.2s ease;
+    }
+    .btn-leave:hover {
+      background: #FFEBEE;
+    }
+
+    .status { 
+      font-size: 0.85rem; 
+      color: var(--text-muted); 
+      margin-top: 14px; 
+      display: none;
+    }
+
+    .custom-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .custom-modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .custom-modal {
+      background: #FFFFFF;
+      padding: 20px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      max-width: 280px;
+      width: 80%;
+      text-align: center;
+    }
+
+    .custom-modal-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--royal-blue);
+      margin-bottom: 16px;
+    }
+
+    .custom-modal-btn {
+      background: var(--royal-blue);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      background: var(--accent-red);
+      color: #FFFFFF;
+    }
+
+    .btn-modal-confirm {
+      background: #E2E8F0;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="appCard" class="card">
+    <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
+
+    <div class="header-bar">
+      <h1 id="tableTitle">TABLE 1</h1>
+      <a href="https://your-menu-ordering-url.com" class="menu-btn" title="Menu">☕ Menu</a>
+    </div>
+
+    <div id="timersContainer" class="timers-container">
+      <div id="bufferSection" class="timer-section">
+        <div class="timer-label">Buffer</div>
+        <div id="bufferTimer" class="buffer-timer">02:00</div>
+      </div>
+
+      <div id="mainTimerSection" class="timer-section">
+        <div class="timer-label">Focus</div>
+        <div id="mainTimer" class="main-timer">45:00</div>
+      </div>
+    </div>
+
+    <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">Enable Expiry Alert</button>
+    <div id="statusText" class="status"></div>
+
+    <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">Renew Focus Session</button>
+    <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">I'm Leaving</button>
+    
+    <div style="background: #FFFFFF; padding: 12px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border-color);">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+        <span>Alert Volume</span>
+        <span id="volVal">35</span>
+      </div>
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)" style="width: 100%; margin-bottom: 10px; accent-color: var(--royal-blue);">
+      <button class="btn" style="background: #E2E8F0; color: var(--text-main); margin-top: 0; font-size: 0.85rem; border: none;" onclick="playChime('7min')">Test Sound 🔊</button>
+    </div>
+  </div>
+
+  <div id="customModalOverlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div id="customModalText" class="custom-modal-text">7 minutes alert confirmed.</div>
+      <button class="custom-modal-btn" onclick="closeCustomModal()">OK</button>
+    </div>
+  </div>
+
+  <div id="confirmModalOverlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div class="custom-modal-text" style="color: var(--text-main);">Are you sure you want to end your focus session early?</div>
+      <div class="modal-actions">
+        <button class="custom-modal-btn btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="custom-modal-btn btn-modal-confirm" onclick="confirmClearTable()">End Session</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2MY_qM4p18RYNwn0a8DX_FGQMdMNyJ4q6b8TnZSnVscOGiUIIPjh0xRaZFvZleMh0Mw/exec";
+
+    let rawTable = '1';
+    let wakeLock = null;
+    let timerInterval = null;
+    let alertVolume = 0.35;
+
+    function updateVolume(val) {
+      document.getElementById('volVal').innerText = val;
+      const slider = document.getElementById('volumeSlider');
+      if(slider) slider.value = val;
+      alertVolume = val / 100;
+    }
+
+    function showCustomModal(message) {
+      document.getElementById('customModalText').innerText = message;
+      document.getElementById('customModalOverlay').classList.add('show');
+    }
+
+    function closeCustomModal() {
+      document.getElementById('customModalOverlay').classList.remove('show');
+    }
+
+    function promptLeaveConfirmation() {
+      document.getElementById('confirmModalOverlay').classList.add('show');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModalOverlay').classList.remove('show');
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+      }
+    }
+
+    function playChime(type) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        if ('vibrate' in navigator) {
+          if (type === '7min') {
+            navigator.vibrate([200, 100, 200]);
+          } else if (type === 'expired') {
+            navigator.vibrate([400, 100, 400, 100, 400]);
           }
         }
-      });
-    }
 
-    itemsArr.forEach(item => {
-      if (String(item).toLowerCase().includes("focus pass")) focusPass = true;
-    });
+        function tone(freq, startTime, duration) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
 
-    const backlogSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Backlog");
-    backlogSheet.appendRow([
-      new Date(),
-      contents.eventId || e.parameter.eventId || "WEBHOOK",
-      tableNum,
-      itemsArr.join(", "),
-      totalAmount,
-      focusPass ? "YES" : "NO",
-      "", "", "", "",
-      userToken
-    ]);
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
 
-    updateLiveDashboard(tableNum, focusPass, userToken);
-    return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+          const effectiveGain = alertVolume * 0.9;
+          gain.gain.setValueAtTime(effectiveGain, ctx.currentTime + startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
 
-function doGet(e) {
-  const action = e.parameter.action;
-  const table = e.parameter.table;
-  const clientToken = e.parameter.client;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
 
-  if (action === "clear") {
-    const liveSheet = ss.getSheetByName("Live Dashboard");
-    const backlogSheet = ss.getSheetByName("Backlog");
-    
-    const data = liveSheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(table)) {
-        // Explicitly writes "CLEARED" to the status column (Column B / index 2)
-        liveSheet.getRange(i + 1, 2).setValue("CLEARED");
-        liveSheet.getRange(i + 1, 3, 1, 3).setValues([["", "", false]]);
-        break;
-      }
-    }
-
-    if (backlogSheet) {
-      backlogSheet.appendRow([
-        new Date(),
-        "SESSION_ENDED",
-        table,
-        "",
-        0,
-        "NO",
-        "CLEARED",
-        "",
-        clientToken
-      ]);
-    }
-
-    return replyJSON({ status: "success" });
-  }
-
-  if (action === "checkUser") {
-    const liveSheet = ss.getSheetByName("Live Dashboard");
-    const data = liveSheet.getDataRange().getValues();
-    let occupied = false;
-
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(table)) {
-        const status = String(data[i][1]).toLowerCase();
-        const activeToken = String(data[i][3] || ""); 
-        if ((status === "active" || status === "expiring") && activeToken && activeToken !== clientToken) {
-          occupied = true;
+          osc.start(ctx.currentTime + startTime);
+          osc.stop(ctx.currentTime + startTime + duration);
         }
-        break;
+
+        if (type === '7min') {
+          tone(880, 0, 0.3);
+          tone(1046.50, 0.35, 0.6);
+          tone(880, 1.0, 0.3);
+          tone(1046.50, 1.35, 0.6);
+        } else if (type === 'expired') {
+          const pattern = [0, 0.8, 1.6];
+          pattern.forEach(offset => {
+            tone(1046.50, offset + 0.0, 0.2);
+            tone(1046.50, offset + 0.25, 0.2);
+            tone(1318.51, offset + 0.5, 0.4);
+          });
+        }
+      } catch (e) {
+        console.log('Audio playback blocked or unsupported', e);
       }
     }
-    return replyJSON({ status: "success", occupied: occupied });
-  }
 
-  if (action === "client") {
-    const liveSheet = ss.getSheetByName("Live Dashboard");
-    const data = liveSheet.getDataRange().getValues();
-    let tableInfo = { status: "Open", endTime: null };
+    function renderExpiredUI() {
+      const notifyBtn = document.getElementById('notifyBtn');
+      const statusText = document.getElementById('statusText');
+      const bufferSection = document.getElementById('bufferSection');
 
-    const targetTable = String(table || "").trim();
+      if (notifyBtn) notifyBtn.style.display = 'none';
+      if (statusText) statusText.style.display = 'none';
+      if (bufferSection) bufferSection.style.display = 'none';
 
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]).trim() === targetTable) {
-        tableInfo = {
-          status: data[i][1],
-          endTime: data[i][2],
-          userToken: data[i][3]
-        };
-        break;
+      const appCard = document.getElementById('appCard');
+      const timersContainer = document.getElementById('timersContainer');
+      if (appCard) appCard.classList.add('tint-expired-mode');
+      if (timersContainer) timersContainer.classList.add('expired-mode');
+
+      const mainTimerEl = document.getElementById('mainTimer');
+      const bufferTimerEl = document.getElementById('bufferTimer');
+      if (mainTimerEl) {
+        mainTimerEl.innerText = "00:00";
+        mainTimerEl.classList.remove('warning');
+        mainTimerEl.classList.add('expired');
       }
+      if (bufferTimerEl) {
+        bufferTimerEl.innerText = "00:00";
+      }
+
+      document.getElementById('renewBtn').style.display = "block";
+      document.getElementById('leaveBtn').style.display = "block";
     }
-    return replyJSON({ status: "success", tables: { [targetTable]: tableInfo }, table: tableInfo });
-  }
 
-  if (action === "manager") {
-    const liveSheet = ss.getSheetByName("Live Dashboard");
-    const backlogSheet = ss.getSheetByName("Backlog");
-    const liveData = liveSheet.getDataRange().getValues();
-    const backlogData = backlogSheet.getDataRange().getValues();
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      rawTable = urlParams.get('table') || urlParams.get('Table') || '1';
+      rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
 
-    let tablesObj = {};
+      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
 
-    for (let i = 1; i < liveData.length; i++) {
-      const tNum = String(liveData[i][0]);
-      if (!tNum) continue;
+      const endedKey = 'session_ended_' + rawTable + '_' + sessionId;
+      if (localStorage.getItem(endedKey) === 'true') {
+        document.getElementById('appCard').innerHTML = `
+          <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
+          <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
+        `;
+        throw new Error("Session already ended");
+      }
 
-      let orders = [];
-      let totalSum = 0;
-      let intervalCount = 0;
+      document.getElementById('tableTitle').innerText = "TABLE " + rawTable;
 
-      for (let j = 1; j < backlogData.length; j++) {
-        if (String(backlogData[j][2]) === tNum) {
-          if (backlogData[j][3]) orders.push(backlogData[j][3]);
-          totalSum += Number(backlogData[j][4] || 0);
-          if (String(backlogData[j][5]).toUpperCase() === "YES") intervalCount++;
+      let localUserId = localStorage.getItem('focus_user_id');
+      if (!localUserId) {
+        localUserId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now();
+        localStorage.setItem('focus_user_id', localUserId);
+      }
+
+      fetch(`${SCRIPT_URL}?action=client`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+            const tableData = data.tables[rawTable];
+            if (tableData.userId && sessionId !== 'latest' && tableData.userId !== sessionId) {
+              if (tableData.userId !== localUserId) {
+                document.getElementById('appCard').innerHTML = `
+                  <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--accent-red);">Table Already Booked</div>
+                  <p style="color: var(--text-main); font-size: 1rem; margin-bottom: 8px;">This table is already booked by another user.</p>
+                `;
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+              }
+            }
+          }
+        })
+        .catch(err => console.error("User validation error:", err));
+
+      const storageKey = 'session_start_table_' + rawTable + '_' + sessionId;
+      let startTime = localStorage.getItem(storageKey);
+
+      const BUFFER_DURATION_MS = 2 * 60 * 1000;
+      const MAIN_DURATION_MS = 45 * 60 * 1000;
+      const TOTAL_DURATION_MS = BUFFER_DURATION_MS + MAIN_DURATION_MS;
+
+      if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem(storageKey, startTime);
+      } else {
+        startTime = parseInt(startTime, 10);
+      }
+
+      const sessionExpiryTime = startTime + TOTAL_DURATION_MS;
+      localStorage.setItem('activeTable', rawTable);
+      localStorage.setItem('sessionExpiry', sessionExpiryTime);
+
+      if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
+        const btn = document.getElementById('notifyBtn');
+        const status = document.getElementById('statusText');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = "Reminder was sent";
+        }
+        if (status) {
+          status.style.display = 'none';
         }
       }
 
-      tablesObj[tNum] = {
-        table: tNum,
-        status: liveData[i][1] || "Open",
-        endTime: liveData[i][2] || null,
-        isPaid: liveData[i][4] === true || String(liveData[i][4]).toUpperCase() === "TRUE",
-        orders: orders,
-        totalSum: totalSum,
-        intervalCount: intervalCount
+      const bufferTimerEl = document.getElementById('bufferTimer');
+      const mainTimerEl = document.getElementById('mainTimer');
+      const bufferSection = document.getElementById('bufferSection');
+      const mainTimerSection = document.getElementById('mainTimerSection');
+      let alertPlayed = false;
+      let expiredPlayed = false;
+
+      timerInterval = setInterval(() => {
+        const elapsedMs = Date.now() - startTime;
+        const totalSecRemaining = Math.max(0, Math.floor((TOTAL_DURATION_MS - elapsedMs) / 1000));
+
+        if (elapsedMs < BUFFER_DURATION_MS) {
+          let remainingBufferMs = BUFFER_DURATION_MS - elapsedMs;
+          let bufferSecs = Math.floor(remainingBufferMs / 1000);
+          let bMins = Math.floor(bufferSecs / 60);
+          let bSecs = bufferSecs % 60;
+
+          bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
+          mainTimerEl.innerText = "45:00";
+
+          if (totalSecRemaining > 2700) {
+            bufferSection.className = 'timer-section tint-buffer-active-box';
+            mainTimerSection.className = 'timer-section tint-muted';
+          }
+        } 
+        else if (elapsedMs < TOTAL_DURATION_MS) {
+          bufferTimerEl.innerText = "00:00";
+          bufferTimerEl.classList.remove('warning');
+          bufferTimerEl.classList.add('expired');
+
+          let remainingMainMs = TOTAL_DURATION_MS - elapsedMs;
+          let mainSecs = Math.floor(remainingMainMs / 1000);
+          let mMins = Math.floor(mainSecs / 60);
+          let mSecs = mainSecs % 60;
+
+          mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+
+          if (totalSecRemaining <= 2700) {
+            mainTimerSection.className = 'timer-section tint-focus-active-box';
+            bufferSection.className = 'timer-section tint-muted';
+          }
+
+          if (mainSecs <= 420) {
+            if (!alertPlayed) {
+              mainTimerEl.classList.add('warning');
+              playChime('7min');
+              requestWakeLock();
+              alertPlayed = true;
+            }
+          }
+        } 
+        else {
+          if (!expiredPlayed) {
+            playChime('expired');
+            requestWakeLock();
+            expiredPlayed = true;
+          }
+
+          renderExpiredUI();
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+
+      // High-performance synchronized background loop & instant tab-focus sync
+      const syncWithServer = () => {
+        fetch(`${SCRIPT_URL}?action=client`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success' && data.tables && data.tables[rawTable]) {
+              const tableData = data.tables[rawTable];
+              if (tableData.status === 'available' && !document.getElementById('renewBtn').style.display) {
+                // Optional state re-alignment can happen here if required
+              }
+            }
+          })
+          .catch(err => console.error("Sync error:", err));
       };
+
+      // Poll every 10 seconds for tighter synchronization
+      setInterval(syncWithServer, 10000);
+
+      // Instant sync the moment the user taps back into the tab or unlocks their phone
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+          syncWithServer();
+        }
+      });
+
+    } catch (err) {
+      console.error("Initialization Error:", err);
     }
 
-    return replyJSON({ status: "success", tables: tablesObj });
-  }
+    async function enablePushNotifications() {
+      const btn = document.getElementById('notifyBtn');
+      const status = document.getElementById('statusText');
 
-  if (action === "togglePaid") {
-    const liveSheet = ss.getSheetByName("Live Dashboard");
-    const data = liveSheet.getDataRange().getValues();
-    let newState = false;
+      requestWakeLock();
 
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(table)) {
-        const currentPaid = data[i][4] === true || String(data[i][4]).toUpperCase() === "TRUE";
-        newState = !currentPaid;
-        liveSheet.getRange(i + 1, 5).setValue(newState);
-        break;
+      if (!('Notification' in window)) {
+        status.style.display = 'block';
+        status.innerText = "Push alerts not supported. Keep tab open for chime.";
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+          
+          const tokenVal = 'TKN_' + Math.random().toString(36).substring(2, 10) + Date.now();
+
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: "enableAlert",
+              table: rawTable,
+              token: tokenVal,
+              statusApproval: "SENT"
+            })
+          });
+
+          localStorage.setItem('alerts_enabled_table_' + rawTable + '_' + sessionId, 'true');
+
+          showCustomModal("7 minutes alert confirmed.");
+
+          if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Alert will be sent";
+          }
+          if (status) {
+            status.style.display = 'none';
+          }
+        } else {
+          status.style.display = 'block';
+          status.innerText = "Permission denied. Keep tab open to track clock.";
+        }
+      } catch (err) {
+        status.style.display = 'block';
+        status.innerText = "Could not enable alerts. Keep tab open for chime.";
       }
     }
-    return replyJSON({ status: "success", isPaid: newState });
-  }
 
-  if (action === "logReminder") {
-    const tableNum = e.parameter.table;
-    const clientToken = e.parameter.client;
-    
-    const backlogSheet = ss.getSheetByName("Backlog");
-    if (!backlogSheet) {
-      ss.insertSheet("Backlog");
+    function startRenewal() {
+      let countKey = 'renewal_count_' + rawTable;
+      let renewalCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+
+      localStorage.setItem(countKey, renewalCount);
+
+      let evenUneven = (renewalCount % 2 === 0);
+
+      window.location.href = `https://tally.so/r/aQqkWX?table=${rawTable}&even_uneven=${evenUneven}`;
     }
 
-    backlogSheet.appendRow([
-      new Date(),
-      "REMINDER_WEBHOOK",
-      tableNum,
-      "7-Min Reminder Requested",
-      0,
-      "NO",
-      "1",          
-      "SENT",      
-      clientToken  
-    ]);
+    async function confirmClearTable() {
+      closeConfirmModal();
 
-    return replyJSON({ status: "success", message: "Reminder logged" });
-  }
+      var tableNum = localStorage.getItem('activeTable') || rawTable;
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('t') || urlParams.get('submission_id') || 'latest';
+      let localUserId = localStorage.getItem('focus_user_id') || '';
 
-  return replyJSON({ status: "error", message: "Invalid action" });
-}
+      if (timerInterval) clearInterval(timerInterval);
 
-function updateLiveDashboard(tableNum, focusPass, userToken) {
-  const liveSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Live Dashboard");
-  const data = liveSheet.getDataRange().getValues();
-  let found = false;
+      localStorage.setItem('session_ended_' + tableNum + '_' + sessionId, 'true');
+      localStorage.removeItem('session_start_table_' + tableNum + '_' + sessionId);
+      localStorage.setItem('force_clear_table_' + tableNum, Date.now());
 
-  const now = new Date();
-  const endTime = new Date(now.getTime() + 47 * 60 * 1000); 
+      document.getElementById('appCard').innerHTML = `
+        <div style="font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: var(--royal-blue);">Session Ended</div>
+        <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px;">Thank you for visiting!</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">You may now safely close this window.</p>
+      `;
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(tableNum)) {
-      liveSheet.getRange(i + 1, 2, 1, 4).setValues([["Active", endTime.toISOString(), userToken, false]]);
-      found = true;
-      break;
+      localStorage.removeItem('activeTable');
+      localStorage.removeItem('sessionExpiry');
+      localStorage.removeItem('renewal_count_' + rawTable);
+
+      // Bulletproof request implementation using sendBeacon to guarantee delivery before close/refresh
+      try {
+        const beaconUrl = `${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`;
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(beaconUrl);
+        } else {
+          fetch(beaconUrl, {
+            method: 'GET',
+            mode: 'no-cors',
+            keepalive: true
+          });
+        }
+      } catch (err) {
+        console.log("Background ping sent to LiveDash", err);
+      }
+
+      setTimeout(() => {
+        window.close();
+      }, 2500);
     }
-  }
-
-  if (!found) {
-    liveSheet.appendRow([tableNum, "Active", endTime.toISOString(), userToken, false]);
-  }
-}
-
-function replyJSON(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
+  </script>
+</body>
+</html>
