@@ -281,10 +281,12 @@
 
   let rawTable = '1';
   let wakeLock = null;
-  let timerInterval = null;
   let alertVolume = 0.35;
-  let serverSecondsLeft = null;
-  let syncInterval = null;
+  let targetEndTimestampMs = null;
+  let audioCtx = null;
+  
+  let alertPlayed = false;
+  let expiredPlayed = false;
 
   let localUserId = localStorage.getItem('focus_user_id');
   if (!localUserId) {
@@ -332,8 +334,12 @@
 
   function playChime(type) {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContext();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
 
       if ('vibrate' in navigator) {
         if (type === '7min') navigator.vibrate([200, 100, 200]);
@@ -341,17 +347,17 @@
       }
 
       function tone(freq, startTime, duration) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
         osc.type = 'triangle';
         osc.frequency.value = freq;
         const effectiveGain = alertVolume * 0.9;
-        gain.gain.setValueAtTime(effectiveGain, ctx.currentTime + startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+        gain.gain.setValueAtTime(effectiveGain, audioCtx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
         osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + startTime);
-        osc.stop(ctx.currentTime + startTime + duration);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + startTime);
+        osc.stop(audioCtx.currentTime + startTime + duration);
       }
 
       if (type === '7min') {
@@ -367,7 +373,7 @@
         });
       }
     } catch (e) {
-      console.log('Audio playback blocked or unsupported', e);
+      console.warn("Audio playback issue:", e);
     }
   }
 
@@ -395,13 +401,13 @@
     if (leaveBtn) leaveBtn.style.display = "block";
   }
 
-  function parseEndTimeToSeconds(rawEnd) {
-    if (!rawEnd || rawEnd === "" || rawEnd === "undefined") return null;
+  function parseEndTimeToMs(rawEnd) {
+    if (!rawEnd) return null;
     const now = new Date();
 
     let endDate = new Date(rawEnd);
     if (!isNaN(endDate.getTime()) && (String(rawEnd).includes('T') || String(rawEnd).includes('-') || String(rawEnd).includes('/'))) {
-      return Math.floor((endDate.getTime() - now.getTime()) / 1000);
+      return endDate.getTime();
     }
 
     const timeStr = String(rawEnd).trim();
@@ -418,13 +424,14 @@
       if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
     }
 
-    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
+    endDate = new Date(now);
+    endDate.setHours(hours, minutes, seconds, 0);
 
     if (now.getTime() - endDate.getTime() > 12 * 60 * 60 * 1000) {
       endDate.setDate(endDate.getDate() + 1);
     }
 
-    return Math.floor((endDate.getTime() - now.getTime()) / 1000);
+    return endDate.getTime();
   }
 
   async function fetchServerTimerSync() {
@@ -434,9 +441,9 @@
       if (data.status === 'success' && data.tables && data.tables[rawTable]) {
         const tableData = data.tables[rawTable];
         if (tableData.endTime) {
-          const calculatedSecs = parseEndTimeToSeconds(tableData.endTime);
-          if (calculatedSecs !== null && !isNaN(calculatedSecs)) {
-            serverSecondsLeft = calculatedSecs;
+          const parsedMs = parseEndTimeToMs(tableData.endTime);
+          if (parsedMs !== null && !isNaN(parsedMs)) {
+            targetEndTimestampMs = parsedMs;
           }
         }
       }
@@ -461,6 +468,57 @@
       console.error("Session restoration error:", err);
     }
     return false;
+  }
+
+  function updateDisplay() {
+    if (!targetEndTimestampMs) return;
+
+    const remainingTotalSecs = Math.max(0, Math.floor((targetEndTimestampMs - Date.now()) / 1000));
+    const MAIN_SECS = 45 * 60;
+
+    const bufferTimerEl = document.getElementById('bufferTimer');
+    const mainTimerEl = document.getElementById('mainTimer');
+
+    if (remainingTotalSecs > MAIN_SECS) {
+      let bufferSecs = remainingTotalSecs - MAIN_SECS;
+      let bMins = Math.floor(bufferSecs / 60);
+      let bSecs = bufferSecs % 60;
+
+      if (bufferTimerEl) {
+        bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
+        bufferTimerEl.classList.add('warning');
+      }
+      if (mainTimerEl) mainTimerEl.innerText = "45:00";
+    } 
+    else if (remainingTotalSecs > 0) {
+      if (bufferTimerEl) {
+        bufferTimerEl.innerText = "00:00";
+        bufferTimerEl.classList.remove('warning');
+        bufferTimerEl.classList.add('expired');
+      }
+
+      let mMins = Math.floor(remainingTotalSecs / 60);
+      let mSecs = remainingTotalSecs % 60;
+
+      if (mainTimerEl) {
+        mainTimerEl.innerText = `${mMins < 10 ? '0' : ''}${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
+      }
+
+      if (remainingTotalSecs <= 420 && !alertPlayed) {
+        if (mainTimerEl) mainTimerEl.classList.add('warning');
+        playChime('7min');
+        requestWakeLock();
+        alertPlayed = true;
+      }
+    } 
+    else {
+      if (!expiredPlayed) {
+        playChime('expired');
+        requestWakeLock();
+        expiredPlayed = true;
+      }
+      renderExpiredUI();
+    }
   }
 
   window.addEventListener('DOMContentLoaded', async () => {
@@ -499,69 +557,11 @@
         if (audioPanel) audioPanel.style.display = 'block';
       }
 
-      const bufferTimerEl = document.getElementById('bufferTimer');
-      const mainTimerEl = document.getElementById('mainTimer');
-      let alertPlayed = false;
-      let expiredPlayed = false;
-
       await fetchServerTimerSync();
-      syncInterval = setInterval(fetchServerTimerSync, 5000);
+      
+      setInterval(fetchServerTimerSync, 10000);
 
-      timerInterval = setInterval(() => {
-        let remainingTotalSecs;
-
-        if (serverSecondsLeft !== null) {
-          remainingTotalSecs = serverSecondsLeft;
-          serverSecondsLeft--;
-        } else {
-          return;
-        }
-
-        const MAIN_SECS = 45 * 60;
-
-        if (remainingTotalSecs > MAIN_SECS) {
-          let bufferSecs = remainingTotalSecs - MAIN_SECS;
-          let bMins = Math.floor(bufferSecs / 60);
-          let bSecs = bufferSecs % 60;
-
-          if (bufferTimerEl) {
-            bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
-            bufferTimerEl.classList.add('warning');
-          }
-          if (mainTimerEl) mainTimerEl.innerText = "45:00";
-        } 
-        else if (remainingTotalSecs > 0) {
-          if (bufferTimerEl) {
-            bufferTimerEl.innerText = "00:00";
-            bufferTimerEl.classList.remove('warning');
-            bufferTimerEl.classList.add('expired');
-          }
-
-          let mMins = Math.floor(remainingTotalSecs / 60);
-          let mSecs = remainingTotalSecs % 60;
-
-          if (mainTimerEl) {
-            mainTimerEl.innerText = `${mMins < 10 ? '0' : ''}${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
-          }
-
-          if (remainingTotalSecs <= 420 && !alertPlayed) {
-            if (mainTimerEl) mainTimerEl.classList.add('warning');
-            playChime('7min');
-            requestWakeLock();
-            alertPlayed = true;
-          }
-        } 
-        else {
-          if (!expiredPlayed) {
-            playChime('expired');
-            requestWakeLock();
-            expiredPlayed = true;
-          }
-          renderExpiredUI();
-          clearInterval(timerInterval);
-          if (syncInterval) clearInterval(syncInterval);
-        }
-      }, 1000);
+      setInterval(updateDisplay, 1000);
 
     } catch (err) {
       console.error("Initialization Error:", err);
@@ -623,9 +623,6 @@
     closeConfirmModal();
 
     var tableNum = localStorage.getItem('activeTable') || rawTable;
-
-    if (timerInterval) clearInterval(timerInterval);
-    if (syncInterval) clearInterval(syncInterval);
 
     const appCard = document.getElementById('appCard');
     if (appCard) {
