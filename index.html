@@ -350,10 +350,17 @@
     } catch (e) { console.warn("Audio error:", e); }
   }
 
-  function callReminder() {
+  async function callReminder() {
     playReminderChime();
     localStorage.setItem(`reminder_sent_${rawTable}`, "true");
     checkReminderState();
+
+    // Send request to Apps Script backend to log 'SENT' and token data
+    try {
+      await fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`);
+    } catch (e) {
+      console.warn("Failed to log reminder to server:", e);
+    }
   }
 
   function checkReminderState() {
