@@ -59,32 +59,38 @@
       text-transform: uppercase;
     }
 
+    .timers-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
     .timer-section { 
+      flex: 1;
       background: #FFFFFF; 
       border-radius: 12px; 
-      padding: 12px; 
-      margin-bottom: 14px; 
+      padding: 12px 8px; 
       border: 1px solid var(--border-color);
     }
 
     .timer-label { 
-      font-size: 0.75rem; 
+      font-size: 0.7rem; 
       text-transform: uppercase; 
-      letter-spacing: 1px; 
+      letter-spacing: 0.5px; 
       color: var(--text-muted); 
       margin-bottom: 4px; 
       font-weight: 600;
     }
 
     .main-timer { 
-      font-size: 2.8rem; 
+      font-size: 2.1rem; 
       font-weight: 700; 
       color: var(--royal-blue); 
     }
 
     .buffer-timer { 
-      font-size: 1.5rem; 
-      font-weight: 600; 
+      font-size: 2.1rem; 
+      font-weight: 700; 
       color: var(--royal-blue); 
     }
 
@@ -230,14 +236,16 @@
 
     <h1 id="tableTitle">TABLE 1</h1>
 
-    <div id="bufferSection" class="timer-section">
-      <div class="timer-label">Cashier Walk Buffer</div>
-      <div id="bufferTimer" class="buffer-timer">02:00</div>
-    </div>
+    <div class="timers-container">
+      <div id="bufferSection" class="timer-section">
+        <div class="timer-label">Buffer</div>
+        <div id="bufferTimer" class="buffer-timer">02:00</div>
+      </div>
 
-    <div id="mainTimerSection" class="timer-section">
-      <div class="timer-label">Focus Session</div>
-      <div id="mainTimer" class="main-timer">45:00</div>
+      <div id="mainTimerSection" class="timer-section">
+        <div class="timer-label">Focus</div>
+        <div id="mainTimer" class="main-timer">45:00</div>
+      </div>
     </div>
 
     <button id="notifyBtn" class="btn" onclick="enablePushNotifications()">🔔 Enable 7-Min Expiry Alert</button>
