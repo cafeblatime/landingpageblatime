@@ -1,3 +1,7 @@
+<!-- ========================================== -->
+<!-- 2. CLIENT DASHBOARD (landingpageblatime.html) -->
+<!-- ========================================== -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,7 +94,6 @@
       transition: color 0.3s ease;
     }
 
-    /* Dynamic Tint Classes */
     .tint-buffer-active { background: #FFF3E0 !important; }
     .tint-buffer-active .timer-val { color: var(--accent-orange) !important; }
     .tint-buffer-active .timer-label { color: #B26A00 !important; }
@@ -168,27 +171,26 @@
       max-width: 320px;
       width: 100%;
       text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
     .modal-btns {
       display: flex;
       gap: 10px;
       margin-top: 20px;
     }
-    .btn-modal-cancel { background: #E2E8F0; color: var(--text-main); }
-    .btn-modal-confirm { background: var(--accent-red); color: #FFFFFF; }
+    .btn-modal-cancel { background: var(--accent-red); color: #FFFFFF; }
+    .btn-modal-confirm { background: #E2E8F0; color: var(--text-main); }
   </style>
 </head>
 <body>
 
   <div class="dashboard">
-    <!-- Single Frame Upper Message -->
     <div class="top-banner">
       Thank you! Please finalize your order at the counter.
     </div>
 
     <h1 id="tableDisplay" class="table-title">Table --</h1>
 
-    <!-- Split Timer Block -->
     <div class="timer-container" id="timerContainer">
       <div class="timer-box" id="bufferBox">
         <span class="timer-label">Buffer Walk</span>
@@ -200,15 +202,12 @@
       </div>
     </div>
 
-    <!-- Navigation & Session Buttons -->
     <a id="menuBtn" class="btn-action btn-menu" href="#">Go to Menu ☕</a>
     
-    <!-- 7-Minute Reminder Call Button -->
-    <button class="btn-action btn-reminder" onclick="callReminder()">Call 7-Min Reminder ⏰</button>
+    <button id="reminderBtn" class="btn-action btn-reminder" onclick="callReminder()">Call 7-Min Reminder ⏰</button>
     
     <button id="sessionBtn" class="btn-action btn-end" onclick="handleSessionButtonClick()">End Session</button>
 
-    <!-- Audio Settings Panel -->
     <div class="audio-panel">
       <label>
         <span>Reminder Volume</span>
@@ -218,6 +217,15 @@
       <button class="btn-action" style="margin-top:10px; padding:8px; background:#E2E8F0; color:#1800ad;" onclick="playChimeSound()">
         Test Audio Chime 🔔
       </button>
+    </div>
+  </div>
+
+  <!-- Reminder Custom Popup Modal -->
+  <div id="reminderModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:var(--accent-orange); margin-top:0;">Reminder Requested</h3>
+      <p style="color:var(--text-muted); font-size:0.9rem;">Your 7-minute reminder has been sent to the team. Staff has been notified!</p>
+      <button class="btn-action btn-menu" style="margin-top:15px;" onclick="closeReminderModal()">OK</button>
     </div>
   </div>
 
@@ -252,7 +260,8 @@
 
   document.getElementById("tableDisplay").innerText = `Table ${rawTable}`;
   
-  const menuUrl = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}`;
+  // Go to menu directly skipping initial payment landing page step
+  const menuUrl = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}&skipLanding=true`;
   document.getElementById("menuBtn").href = menuUrl;
 
   let targetEndTimestampMs = null;
@@ -260,6 +269,29 @@
   let alertVolume = 0.35;
   let hasPlayed7MinWarning = false;
   let isSessionExpired = false;
+  let wakeLock = null;
+
+  // Request Screen Wake Lock to keep screen active on supported OS browsers
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+        });
+      }
+    } catch (err) {
+      console.warn(`${err.name}, ${err.message}`);
+    }
+  }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+
+  requestWakeLock();
 
   function updateVolume(val) {
     document.getElementById('volVal').innerText = val;
@@ -287,15 +319,20 @@
     } catch (e) { console.warn("Audio error:", e); }
   }
 
-  // Trigger call to log reminder to backlog sheet
   async function callReminder() {
     playChimeSound();
     try {
       fetch(`${APPS_SCRIPT_URL}?action=logReminder&table=${rawTable}&client=${clientToken}`, { mode: 'no-cors' });
-      alert("7-minute reminder requested! Staff has been notified.");
+      document.getElementById("reminderModal").style.display = "flex";
     } catch (e) {
       console.warn("Reminder logging error:", e);
     }
+  }
+
+  function closeReminderModal() {
+    document.getElementById("reminderModal").style.display = "none";
+    // Hide reminder button after clicking OK
+    document.getElementById("reminderBtn").style.display = "none";
   }
 
   function initializeTimerState() {
@@ -405,7 +442,7 @@
   async function executeEndSession() {
     closeConfirmModal();
     try {
-      fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}`, { mode: 'no-cors' });
+      fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}&client=${clientToken}`, { mode: 'no-cors' });
     } catch (e) {}
     renderExpiredUI();
     document.getElementById("thankYouModal").style.display = "flex";
