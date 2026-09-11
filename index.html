@@ -39,6 +39,30 @@
       transition: background 0.3s ease, border-color 0.3s ease;
     }
 
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--royal-blue);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-btn:hover {
+      background: rgba(24, 0, 173, 0.05);
+    }
+
     .badge { 
       background: rgba(24, 0, 173, 0.08); 
       color: var(--royal-blue); 
@@ -53,8 +77,7 @@
 
     h1 { 
       font-size: 1.3rem; 
-      margin-bottom: 16px; 
-      margin-top: 0; 
+      margin: 0; 
       color: var(--royal-blue);
       letter-spacing: 0.5px;
       text-transform: uppercase;
@@ -111,7 +134,6 @@
       border-color: #FFCDD2;
     }
 
-    /* Buffer Active State (> 45 min remaining / totalSecRemaining > 2700) */
     .timer-section.tint-buffer-active-box {
       background: #FFF3E0;
       border-color: #FFE0B2;
@@ -123,7 +145,6 @@
       color: #B26A00 !important;
     }
 
-    /* Focus Session Active State (<= 45 min remaining / totalSecRemaining <= 2700) */
     .timer-section.tint-focus-active-box {
       background: #E8F5E9;
       border-color: #C8E6C9;
@@ -135,7 +156,6 @@
       color: #1B5E20 !important;
     }
 
-    /* Muted Gray Tone for Inactive Timer */
     .timer-section.tint-muted {
       background: #F1F3F5;
       border-color: #E2E8F0;
@@ -148,7 +168,6 @@
       color: #94A3B8 !important;
     }
 
-    /* Expired Mode Styles for Individual Boxes */
     .timers-container.expired-mode .timer-section {
       background: #FFEBEE !important;
       border-color: #FFCDD2 !important;
@@ -180,6 +199,13 @@
       background: var(--royal-blue-hover);
     }
 
+    .btn:disabled {
+      background: #E2E8F0;
+      color: var(--text-muted);
+      cursor: not-allowed;
+      font-size: 0.8rem;
+    }
+
     .btn-renew { 
       background: var(--royal-blue); 
       display: block; 
@@ -187,11 +213,16 @@
     }
 
     .btn-leave { 
-      background: transparent; 
+      background: #FFFFFF; 
       color: var(--accent-red); 
       border: 2px solid var(--accent-red);
       display: block; 
       margin-top: 12px; 
+      box-shadow: 0 2px 6px rgba(211, 47, 47, 0.15);
+      transition: all 0.2s ease;
+    }
+    .btn-leave:hover {
+      background: #FFEBEE;
     }
 
     .status { 
@@ -291,6 +322,7 @@
     .audio-settings input[type="range"] {
       width: 100%;
       margin-top: 5px;
+      accent-color: var(--royal-blue);
     }
   </style>
 </head>
@@ -299,7 +331,11 @@
   <div id="appCard" class="card">
     <div class="badge">✓ Thank you! Finalize your payment by the counter</div>
 
-    <h1 id="tableTitle">TABLE 1</h1>
+    <div class="header-bar">
+      <h1 id="tableTitle">TABLE 1</h1>
+      <!-- Change the href below to your actual ordering menu URL -->
+      <a href="https://your-menu-ordering-url.com" class="menu-btn" title="Menu">☰ Menu</a>
+    </div>
 
     <div id="timersContainer" class="timers-container">
       <div id="bufferSection" class="timer-section">
@@ -322,11 +358,13 @@
         <span id="volVal">35</span>
       </label>
       <input type="range" id="volumeSlider" min="0" max="100" value="35" oninput="updateVolume(this.value)">
-      <button class="btn btn-renew" style="margin-top: 8px; padding: 6px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
     </div>
 
     <button id="renewBtn" class="btn btn-renew" style="display: none;" onclick="startRenewal()">🔄 Renew Focus Session</button>
     <button id="leaveBtn" class="btn btn-leave" onclick="promptLeaveConfirmation()">🚪 I'm Leaving</button>
+    
+    <!-- Test Sound Button permanently under the I'm leaving button -->
+    <button class="btn" style="background: #E2E8F0; color: var(--text-main); margin-top: 8px; font-size: 0.85rem;" onclick="playChime('7min')">Test Sound 🔊</button>
   </div>
 
   <div id="customModalOverlay" class="custom-modal-overlay">
@@ -446,7 +484,6 @@
       if (bufferSection) bufferSection.style.display = 'none';
       if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
-      // Apply Expired Mode styling states
       const appCard = document.getElementById('appCard');
       const timersContainer = document.getElementById('timersContainer');
       if (appCard) appCard.classList.add('tint-expired-mode');
@@ -522,10 +559,12 @@
       if (localStorage.getItem('alerts_enabled_table_' + rawTable + '_' + sessionId) === 'true') {
         const btn = document.getElementById('notifyBtn');
         const status = document.getElementById('statusText');
-        if (btn) btn.style.display = 'none';
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = "You will receive an alert 7 minutes before expiry";
+        }
         if (status) {
-          status.innerText = "You will receive an alert 7 minutes before expiry";
-          status.classList.add('alert-active');
+          status.style.display = 'none';
         }
         document.getElementById('audioSettingsPanel').style.display = 'block';
       }
@@ -550,7 +589,6 @@
           bufferTimerEl.innerText = `${bMins < 10 ? '0' : ''}${bMins}:${bSecs < 10 ? '0' : ''}${bSecs}`;
           mainTimerEl.innerText = "45:00";
 
-          // Apply Buffer Active state (> 45 min remaining in total / totalSecRemaining > 2700)
           if (totalSecRemaining > 2700) {
             bufferSection.className = 'timer-section tint-buffer-active-box';
             mainTimerSection.className = 'timer-section tint-muted';
@@ -568,16 +606,13 @@
 
           mainTimerEl.innerText = `${mMins}:${mSecs < 10 ? '0' : ''}${mSecs}`;
 
-          // Apply Focus Session Active state (<= 45 min remaining / totalSecRemaining <= 2700)
           if (totalSecRemaining <= 2700) {
             mainTimerSection.className = 'timer-section tint-focus-active-box';
             bufferSection.className = 'timer-section tint-muted';
           }
 
           if (mainSecs <= 420) {
-            const notifyBtn = document.getElementById('notifyBtn');
             const audioSettingsPanel = document.getElementById('audioSettingsPanel');
-            if (notifyBtn) notifyBtn.style.display = 'none';
             if (audioSettingsPanel) audioSettingsPanel.style.display = 'none';
 
             if (!alertPlayed) {
@@ -639,10 +674,12 @@
 
           showCustomModal("7 minutes alert confirmed.");
 
-          if (btn) btn.style.display = 'none';
+          if (btn) {
+            btn.disabled = true;
+            btn.innerText = "You will receive an alert 7 minutes before expiry";
+          }
           if (status) {
-            status.innerText = "You will receive an alert 7 minutes before expiry";
-            status.classList.add('alert-active');
+            status.style.display = 'none';
           }
 
           document.getElementById('audioSettingsPanel').style.display = 'block';
