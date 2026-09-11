@@ -465,7 +465,7 @@
     localStorage.removeItem(`focus_target_end_table_${rawTable}`);
     localStorage.removeItem(`reminder_sent_${rawTable}`);
     
-    // Redirect immediately to a clean, empty state page / reload with cleared context
+    // Redirect immediately to clean ended notice page
     window.location.href = window.location.pathname + `?table=${rawTable}&client_token=${clientToken}&ended=true`;
   }
 
@@ -474,8 +474,7 @@
     document.body.innerHTML = `
       <div style="background:#FAF9F6; color:#1800ad; padding:30px; border-radius:20px; max-width:380px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3); margin:auto;">
         <h2 style="color:#2E7D32; margin-top:0;">Session Ended</h2>
-        <p style="color:#64748B;">This table session has been safely closed. Thank you for your time!</p>
-        <a href="${menuUrl}" style="background:#1800ad; color:#FFFFFF; padding:14px 16px; border-radius:10px; font-weight:bold; display:block; margin-top:20px; text-decoration:none;">Start New Session</a>
+        <p style="color:#64748B; font-size: 1.05rem; line-height: 1.5;">This table session has ended. Thank you and see you soon!</p>
       </div>
     `;
   } else {
