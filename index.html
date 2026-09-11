@@ -327,7 +327,7 @@
     }
   }
 
-  // Active Session Interceptor & Auto-Restore
+  // Active Session Auto-Routing (Step 2)
   async function checkAndRestoreActiveSession() {
     try {
       const response = await fetch(`${SCRIPT_URL}?action=client&client=${localUserId}&_nc=${Date.now()}`);
@@ -337,7 +337,7 @@
         const activeTable = data.activeSession.table;
         const currentUrlParams = new URLSearchParams(window.location.search);
         
-        // Redirect to active table if user opened base menu or wrong table
+        // Redirect to active table if user is on wrong table or menu
         if (currentUrlParams.get('table') !== activeTable) {
           window.location.href = `${window.location.pathname}?table=${activeTable}`;
           return true;
@@ -352,11 +352,11 @@
   // Safe DOM-Ready App Startup (Step 1 + Step 2)
   window.addEventListener('DOMContentLoaded', async () => {
     try {
-      // Step 2: Ensure client routes back to active session if one exists
+      // Execute Step 2 auto-router
       const isRedirecting = await checkAndRestoreActiveSession();
-      if (isRedirecting) return; // Prevent double initialization if navigating
+      if (isRedirecting) return;
 
-      // Step 1: Parse table params safely
+      // Execute Step 1 DOM bindings
       const urlParams = new URLSearchParams(window.location.search);
       rawTable = urlParams.get('table') || urlParams.get('Table') || localStorage.getItem('activeTable') || '1';
       rawTable = rawTable.replace(/[^0-9]/g, '') || '1';
