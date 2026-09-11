@@ -5,105 +5,352 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focus Timer Dashboard</title>
   <style>
-    :root { --bg-color: #1800ad; --card-bg: #FAF9F6; --text-main: #1800ad; --text-muted: #5A6B82; --accent-red: #D32F2F; }
-    body { font-family: system-ui, sans-serif; background: var(--bg-color); color: var(--text-main); padding: 16px; margin: 0; }
-    .dashboard { background: var(--card-bg); border-radius: 20px; padding: 24px; max-width: 400px; margin: 0 auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-    .timer { font-size: 3rem; font-weight: bold; font-family: monospace; margin: 20px 0; color: #1800ad; }
-    .phase-badge { background: #E2E8F0; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-bottom: 10px; }
-    .btn-end { background: var(--accent-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
+    :root {
+      --bg-color: #1800ad;
+      --card-bg: #FAF9F6;
+      --text-main: #1800ad;
+      --text-muted: #5A6B82;
+      --accent-green: #2E7D32;
+      --accent-orange: #E65100;
+      --accent-red: #D32F2F;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      margin: 0;
+    }
+    .top-banner {
+      background: #FFFFFF;
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.95rem;
+      max-width: 400px;
+      margin: 0 auto 16px auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .dashboard {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 24px 16px;
+      max-width: 400px;
+      margin: 0 auto;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .phase-badge {
+      background: #E2E8F0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+    .timer-container {
+      display: flex;
+      justify-content: space-around;
+      margin: 16px 0;
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+    }
+    .timer-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .timer-label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .timer-val {
+      font-size: 1.8rem;
+      font-weight: bold;
+      font-family: monospace;
+      color: var(--text-main);
+    }
+    .tagline {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin: 12px 0 20px 0;
+      min-height: 40px;
+    }
+    .btn-action {
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: block;
+      box-sizing: border-box;
+    }
+    .btn-menu { background: var(--accent-green); color: #FFFFFF; }
+    .btn-end { background: var(--accent-red); color: #FFFFFF; }
+    
+    .audio-panel {
+      margin-top: 16px;
+      background: #FFFFFF;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #E2E8F0;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    .audio-panel label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #FAF9F6;
+      color: var(--text-main);
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-modal-cancel { background: #E2E8F0; color: var(--text-main); }
+    .btn-modal-confirm { background: var(--accent-red); color: #FFFFFF; }
   </style>
 </head>
 <body>
 
-<div class="dashboard">
-  <span id="phaseBadge" class="phase-badge">Syncing Timer...</span>
-  <h1 id="tableDisplay">Table --</h1>
-  <div class="timer" id="timerDisplay">47:00</div>
-  <p id="subText" style="color: var(--text-muted);">Syncing with counter...</p>
-  <button class="btn-end" onclick="confirmClearTable()">End Session</button>
-</div>
+  <div class="top-banner">
+    Thank you for visiting! Please pay at the counter.
+  </div>
+
+  <div class="dashboard">
+    <span id="phaseBadge" class="phase-badge">Initializing Timer...</span>
+    <h1 id="tableDisplay" style="margin: 8px 0;">Table --</h1>
+
+    <div class="timer-container">
+      <div class="timer-box">
+        <span class="timer-label">Buffer Walk</span>
+        <span id="bufferTimer" class="timer-val">02:00</span>
+      </div>
+      <div class="timer-box" style="border-left: 1px solid #E2E8F0; padding-left: 16px;">
+        <span class="timer-label">Focus Session</span>
+        <span id="focusTimer" class="timer-val">45:00</span>
+      </div>
+    </div>
+
+    <p id="tagline" class="tagline">Connecting to table system...</p>
+
+    <a id="menuBtn" class="btn-action btn-menu" href="#">Order More Items ☕</a>
+    <button class="btn-action btn-end" onclick="openConfirmModal()">End Session</button>
+
+    <div class="audio-panel">
+      <label>
+        <span>Reminder Volume</span>
+        <span id="volVal">35</span>
+      </label>
+      <input type="range" id="volumeSlider" min="0" max="100" value="35" style="width:100%; margin-top:6px;" oninput="updateVolume(this.value)">
+      <button class="btn-action" style="margin-top:8px; padding:6px; background:#E2E8F0; color:#1800ad;" onclick="playChimeSound()">Test Reminder Chime 🔔</button>
+    </div>
+  </div>
+
+  <!-- End Session Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">End Focus Session?</h3>
+      <p style="color:var(--text-muted); font-size:0.9rem;">Are you sure you want to end your time early and free up this table?</p>
+      <div class="modal-btns">
+        <button class="btn-action btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn-action btn-modal-confirm" onclick="executeEndSession()">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thank You Modal -->
+  <div id="thankYouModal" class="modal">
+    <div class="modal-content">
+      <h2 style="color:var(--accent-green); margin-top:0;">Thank You!</h2>
+      <p style="color:var(--text-muted);">Your session has ended. We hope you had a productive focus session!</p>
+      <button class="btn-action btn-menu" onclick="closeThankYouModal()">Close</button>
+    </div>
+  </div>
 
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjQtbuew_onZqKqSEO49KeMQwIwm-t5VBwwSC1l8XcBE-7bWcjcnUDS4Jv9lNHgC2HbQ/exec";
-  
+  const TALLY_BASE_URL = "https://tally.so/r/aQqkWX";
+
   const urlParams = new URLSearchParams(window.location.search);
   const rawTable = urlParams.get("table") || "1";
-  const localUserId = localStorage.getItem("focus_user_id") || "USR-GUEST";
-
-  let targetEndTimestampMs = Date.now() + (47 * 60 * 1000); 
+  const clientToken = urlParams.get("client_token") || localStorage.getItem("focus_user_id") || "USR-GUEST";
 
   document.getElementById("tableDisplay").innerText = `Table ${rawTable}`;
+  document.getElementById("menuBtn").href = `${TALLY_BASE_URL}?table=${rawTable}&client_token=${clientToken}`;
+
+  let targetEndTimestampMs = null;
+  let audioCtx = null;
+  let alertVolume = 0.35;
+  let hasPlayed7MinWarning = false;
+
+  function updateVolume(val) {
+    document.getElementById('volVal').innerText = val;
+    alertVolume = val / 100;
+  }
+
+  function playChimeSound() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const now = audioCtx.currentTime;
+      [659.25, 880].forEach((freq, index) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + (index * 0.15));
+        gain.gain.setValueAtTime(alertVolume, now + (index * 0.15));
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (index * 0.15) + 0.6);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + (index * 0.15));
+        osc.stop(now + (index * 0.15) + 0.6);
+      });
+    } catch (e) { console.warn("Audio disabled:", e); }
+  }
+
+  function initializeTimerState() {
+    const storageKey = `focus_target_end_table_${rawTable}`;
+    const savedEnd = localStorage.getItem(storageKey);
+    
+    if (savedEnd && !isNaN(parseInt(savedEnd, 10)) && parseInt(savedEnd, 10) > Date.now()) {
+      targetEndTimestampMs = parseInt(savedEnd, 10);
+    } else {
+      targetEndTimestampMs = Date.now() + (47 * 60 * 1000);
+      localStorage.setItem(storageKey, targetEndTimestampMs);
+    }
+  }
 
   async function fetchServerTimerSync() {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=client&table=${rawTable}&client=${localUserId}`);
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=client&table=${rawTable}&client=${clientToken}`);
       const data = await res.json();
 
       if (data.status === "success" && data.table) {
-        const tableData = data.table;
-
-        if (tableData.status === "Open" || tableData.status === "Cleared") {
+        if (data.table.status === "Open" || data.table.status === "Cleared") {
           renderExpiredUI();
           return;
         }
-
-        if (tableData.endTime) {
-          const parsedMs = new Date(tableData.endTime).getTime();
-          if (!isNaN(parsedMs)) {
-            targetEndTimestampMs = parsedMs;
+        if (data.table.endTime) {
+          const serverEndMs = new Date(data.table.endTime).getTime();
+          if (!isNaN(serverEndMs) && Math.abs(serverEndMs - targetEndTimestampMs) > 5000) {
+            targetEndTimestampMs = serverEndMs;
+            localStorage.setItem(`focus_target_end_table_${rawTable}`, targetEndTimestampMs);
           }
         }
       }
-    } catch (e) {
-      console.warn("Sync failed, fallback to local countdown:", e);
-    }
+    } catch (e) { console.warn("Sync warning:", e); }
   }
 
   function updateDisplay() {
     const now = Date.now();
-    const remainingSec = Math.floor((targetEndTimestampMs - now) / 1000);
+    const totalSecRemaining = Math.floor((targetEndTimestampMs - now) / 1000);
 
-    if (remainingSec <= 0) {
+    if (totalSecRemaining <= 0) {
       renderExpiredUI();
       return;
     }
 
-    const mins = Math.floor(remainingSec / 60);
-    const secs = remainingSec % 60;
-    document.getElementById("timerDisplay").innerText = `${mins < 10 ? '0':''}${mins}:${secs < 10 ? '0':''}${secs}`;
+    // 7-minute warning sound trigger (420 seconds left)
+    if (totalSecRemaining <= 420 && !hasPlayed7MinWarning) {
+      hasPlayed7MinWarning = true;
+      playChimeSound();
+    }
+
+    const bufferSecLeft = Math.max(0, totalSecRemaining - 2700);
+    const focusSecLeft = Math.min(2700, totalSecRemaining);
+
+    // Buffer display
+    const bMins = Math.floor(bufferSecLeft / 60);
+    const bSecs = bufferSecLeft % 60;
+    document.getElementById("bufferTimer").innerText = `${bMins.toString().padStart(2,'0')}:${bSecs.toString().padStart(2,'0')}`;
+
+    // Focus display
+    const fMins = Math.floor(focusSecLeft / 60);
+    const fSecs = focusSecLeft % 60;
+    document.getElementById("focusTimer").innerText = `${fMins.toString().padStart(2,'0')}:${fSecs.toString().padStart(2,'0')}`;
 
     const badge = document.getElementById("phaseBadge");
-    const subText = document.getElementById("subText");
+    const tagline = document.getElementById("tagline");
 
-    if (remainingSec > 2700) { 
-      badge.innerText = "Buffer Walk Phase";
+    if (totalSecRemaining > 2700) {
+      badge.innerText = "Cashier Walk Buffer";
       badge.style.background = "#FFC107";
-      subText.innerText = "Please claim your table and order at the counter.";
-    } else {
+      badge.style.color = "#1800ad";
+      tagline.innerText = "Please place your order at the counter and claim your seat.";
+    } else if (totalSecRemaining > 420) {
       badge.innerText = "Focus Session Active";
       badge.style.background = "#2E7D32";
       badge.style.color = "#FFFFFF";
-      subText.innerText = "Deep work in progress. Enjoy your focus time!";
+      tagline.innerText = "Deep work phase in progress. Minimize distractions and focus!";
+    } else {
+      badge.innerText = "Session Expiring Soon";
+      badge.style.background = "#E65100";
+      badge.style.color = "#FFFFFF";
+      tagline.innerText = "Less than 7 minutes remaining. Prepare to wrap up your session.";
     }
   }
 
   function renderExpiredUI() {
-    document.getElementById("timerDisplay").innerText = "00:00";
-    document.getElementById("phaseBadge").innerText = "Session Ended";
+    localStorage.removeItem(`focus_target_end_table_${rawTable}`);
+    document.getElementById("bufferTimer").innerText = "00:00";
+    document.getElementById("focusTimer").innerText = "00:00";
+    document.getElementById("phaseBadge").innerText = "Session Completed";
     document.getElementById("phaseBadge").style.background = "#D32F2F";
     document.getElementById("phaseBadge").style.color = "#FFFFFF";
-    document.getElementById("subText").innerText = "This table is now available for new reservations.";
+    document.getElementById("tagline").innerText = "This table session has ended. Thank you for visiting!";
   }
 
-  async function confirmClearTable() {
-    if (confirm("End your session early and free up this table?")) {
-      try {
-        await fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}`);
-      } catch (e) {}
-      renderExpiredUI();
-    }
+  function openConfirmModal() { document.getElementById("confirmModal").style.display = "flex"; }
+  function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
+
+  async function executeEndSession() {
+    closeConfirmModal();
+    try {
+      fetch(`${APPS_SCRIPT_URL}?action=clear&table=${rawTable}`, { mode: 'no-cors' });
+    } catch (e) {}
+    renderExpiredUI();
+    document.getElementById("thankYouModal").style.display = "flex";
   }
 
+  function closeThankYouModal() { document.getElementById("thankYouModal").style.display = "none"; }
+
+  initializeTimerState();
   fetchServerTimerSync();
   setInterval(fetchServerTimerSync, 10000);
   setInterval(updateDisplay, 1000);
