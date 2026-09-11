@@ -148,7 +148,7 @@
 <body>
 
   <div class="top-banner">
-    Thank you for visiting! Please pay at the counter.
+    Thank you! We received your order. Please pay at the counter.
   </div>
 
   <div class="dashboard">
@@ -168,7 +168,7 @@
 
     <p id="tagline" class="tagline">Connecting to table system...</p>
 
-    <a id="menuBtn" class="btn-action btn-menu" href="#">Order More Items ☕</a>
+    <a id="menuBtn" class="btn-action btn-menu" href="#">to the menu ☕</a>
     <button class="btn-action btn-end" onclick="openConfirmModal()">End Session</button>
 
     <div class="audio-panel">
@@ -317,7 +317,6 @@
       badge.innerText = "Focus Session Active";
       badge.style.background = "#2E7D32";
       badge.style.color = "#FFFFFF";
-      tagline.innerText = "Deep work phase in progress. Minimize distractions and focus!";
     } else {
       badge.innerText = "Session Expiring Soon";
       badge.style.background = "#E65100";
@@ -333,7 +332,7 @@
     document.getElementById("phaseBadge").innerText = "Session Completed";
     document.getElementById("phaseBadge").style.background = "#D32F2F";
     document.getElementById("phaseBadge").style.color = "#FFFFFF";
-    document.getElementById("tagline").innerText = "This table session has ended. Thank you for visiting!";
+    document.getElementById("tagline").innerText = "This table session has ended. Start another one? ";
   }
 
   function openConfirmModal() { document.getElementById("confirmModal").style.display = "flex"; }
