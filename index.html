@@ -612,14 +612,13 @@
         }
       }, 1000);
 
-      // Added background sync interval to eliminate lag and keep state updated with server
+      // Background sync interval to eliminate lag and keep state updated with server
       setInterval(() => {
         fetch(`${SCRIPT_URL}?action=client`)
           .then(response => response.json())
           .then(data => {
             if (data.status === 'success' && data.tables && data.tables[rawTable]) {
               const tableData = data.tables[rawTable];
-              // If the staff dashboard cleared or changed the session state, handle accordingly
               if (tableData.status === 'available' || (tableData.startTime && tableData.startTime !== startTime)) {
                 // Optional state re-alignment can happen here if required
               }
@@ -720,12 +719,18 @@
       localStorage.removeItem('sessionExpiry');
       localStorage.removeItem('renewal_count_' + rawTable);
 
-      // Bulletproof GET request implementation that guarantees it hits doGet(e) instantly
+      // Bulletproof request implementation using sendBeacon to guarantee delivery before close/refresh
       try {
-        fetch(`${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`, {
-          method: 'GET',
-          mode: 'no-cors'
-        });
+        const beaconUrl = `${SCRIPT_URL}?action=clear&table=${tableNum}&client=${localUserId}`;
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(beaconUrl);
+        } else {
+          fetch(beaconUrl, {
+            method: 'GET',
+            mode: 'no-cors',
+            keepalive: true
+          });
+        }
       } catch (err) {
         console.log("Background ping sent to LiveDash", err);
       }
